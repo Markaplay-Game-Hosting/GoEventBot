@@ -29,12 +29,15 @@ func (e EventModel) Insert(event *Event) error {
 	return nil
 }
 
-func (e EventModel) Get(ID string) bool {
+func (e EventModel) Get(ID string) (bool, error) {
 	ctx := context.Background()
-	eventFound := e.DB.Get(ctx, ID)
-	if eventFound == nil {
-		return false
+	eventFound, err := e.DB.Get(ctx, ID).Result()
+	if err != nil {
+		return false, err
+	}
+	if eventFound != ID {
+		return false, nil
 	} else {
-		return true
+		return true, nil
 	}
 }

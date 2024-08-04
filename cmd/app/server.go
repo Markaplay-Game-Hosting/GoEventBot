@@ -40,7 +40,10 @@ func (app *application) serve() error {
 					app.logger.Info(fmt.Sprintf("event summary: %s", event.Summary))
 					app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
 					app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
-					eventExist := app.models.Event.Get(event.Id)
+					eventExist, err := app.models.Event.Get(event.Id)
+					if err != nil {
+						app.logger.Error("Error while getting the event id from the DB", err.Error())
+					}
 					if eventExist == false {
 						app.logger.Info("no records found in db, adding it!")
 
@@ -77,15 +80,13 @@ func (app *application) serve() error {
 	}()
 
 	go func() {
-		for {
-			for eventInfo := range sendStatusChannel {
-				msg := FormatMessage(eventInfo)
-				err := app.SendMessage(msg)
-				if err != nil {
-					app.logger.Error("Unable to send message", err.Error())
-				} else {
-					app.logger.Info("Message sent successfully")
-				}
+		for eventInfo := range sendStatusChannel {
+			msg := FormatMessage(eventInfo)
+			err := app.SendMessage(msg)
+			if err != nil {
+				app.logger.Error("Unable to send message", err.Error())
+			} else {
+				app.logger.Info("Message sent successfully")
 			}
 		}
 	}()
