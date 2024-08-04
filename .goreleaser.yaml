@@ -38,17 +38,12 @@ archives:
 
 # .goreleaser.yaml
 kos:
-  - main: ./cmd/app/...
+  - main: ./cmd/...
 
     # Working directory used to build.
     #
     # Default: build.dir.
     working_dir: .
-
-    # Repository to push to.
-    #
-    # Default: '$KO_DOCKER_REPO'.
-    repository: ghcr.io/markaplay-game-hosting/goeventbot
 
     # Platforms to build and publish.
     #
