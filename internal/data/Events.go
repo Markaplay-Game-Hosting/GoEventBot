@@ -46,3 +46,23 @@ func (e EventModel) Get(ID string) (time.Time, error) {
 		return date, nil
 	}
 }
+
+func (e EventModel) GetAll() ([]string, error) {
+	var events []string
+	ctx := context.Background()
+	events, err := e.DB.Keys(ctx, "*").Result()
+	if err != nil {
+		return events, err
+	}
+
+	return events, nil
+}
+
+func (e EventModel) Delete(ID string) error {
+	ctx := context.Background()
+	err := e.DB.Del(ctx, ID).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}

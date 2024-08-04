@@ -10,7 +10,6 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 	"log/slog"
-	"math/rand"
 	"os"
 	"time"
 )
@@ -30,23 +29,6 @@ type application struct {
 	models data.Models
 	db     *redis.Client
 	wg     sync.WaitGroup
-}
-
-func (app *application) GetEvents() (*calendar.Events, error) {
-	cal := app.config.service.Events.List(app.config.calendarId)
-	rand.Int()
-	timeMin := time.Now().Format(time.RFC3339)
-
-	timeMax := time.Now().Add(app.config.timeSpan).Format(time.RFC3339)
-
-	cal.TimeMin(timeMin)
-	cal.TimeMax(timeMax)
-
-	events, err := cal.Do()
-	if err != nil {
-		return nil, err
-	}
-	return events, nil
 }
 
 func Timer(eventInfo data.Event, ch chan<- data.Event) {

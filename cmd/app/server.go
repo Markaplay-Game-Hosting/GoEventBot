@@ -41,34 +41,35 @@ func (app *application) serve() error {
 					app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
 					app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
 
+					startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)
+					if err != nil {
+						app.logger.Error("error while converting start date to time.Time", err.Error())
+					}
+					endDate, err := time.Parse(time.RFC3339, event.End.DateTime)
+					if err != nil {
+						app.logger.Error("error while converting end date to time.Time", err.Error())
+					}
+
+					eventToCheck := data.Event{
+						ID:          event.Id,
+						Title:       event.Summary,
+						Description: event.Description,
+						StartDate:   startDate,
+						EndDate:     endDate,
+					}
+
 					var defaultTime time.Time
 					eventExist, err := app.models.Event.Get(event.Id)
 					if err != nil && eventExist == defaultTime {
-						app.logger.Error("Error while getting the event id from the DB", err.Error())
+						app.logger.Error("Error while getting the event id from the DB", err)
 					} else if err == nil && eventExist == defaultTime {
 						app.logger.Info("EventId not found")
 					}
-					startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)
+
 					nowDiff := startDate.Sub(time.Now())
 					if eventExist != startDate && nowDiff > 0 {
 						app.logger.Info("no records found in db, adding it!")
 
-						startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)
-						if err != nil {
-							app.logger.Error("error while converting start date to time.Time", err.Error())
-						}
-						endDate, err := time.Parse(time.RFC3339, event.End.DateTime)
-						if err != nil {
-							app.logger.Error("error while converting end date to time.Time", err.Error())
-						}
-
-						eventToCheck := data.Event{
-							ID:          event.Id,
-							Title:       event.Summary,
-							Description: event.Description,
-							StartDate:   startDate,
-							EndDate:     endDate,
-						}
 						err = app.models.Event.Insert(&eventToCheck)
 						if err != nil {
 							app.logger.Error("Unable to add event to DB!")
