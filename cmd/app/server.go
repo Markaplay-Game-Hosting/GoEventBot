@@ -77,7 +77,7 @@ func (app *application) serve() error {
 							app.logger.Info("Added event to the DB!")
 						}
 
-						Timer(eventToCheck, sendStatusChannel)
+						go Timer(eventToCheck, sendStatusChannel)
 					} else {
 						app.logger.Info("Event already registered in the DB!")
 					}
