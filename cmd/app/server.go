@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"github.com/redis/go-redis/v9"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,14 +34,11 @@ func (app *application) serve() error {
 			app.logger.Info(fmt.Sprintf("Waiting %s to check events", app.config.polling))
 			time.Sleep(app.config.polling)
 			events, err := app.GetEvents()
-			if err != nil {
+			if err == nil {
 				app.logger.Error("Unable to get calendar events: ", err.Error())
 			}
 			if len(events.Items) > 0 {
 				for _, event := range events.Items {
-					app.logger.Info(fmt.Sprintf("event summary: %s", event.Summary))
-					app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
-					app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
 
 					startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)
 					if err != nil {
@@ -60,12 +59,20 @@ func (app *application) serve() error {
 
 					eventExist, _, err := app.models.Event.Get(event.Id)
 					if err != nil {
-						app.logger.Error("Error while getting the event id from the DB", err.Error())
+						if errors.Is(err, redis.Nil) {
+							app.logger.Error("Key not found", err.Error())
+						} else {
+							app.logger.Error("Error while getting event id", err.Error())
+						}
 					}
 
 					nowDiff := eventToCheck.StartDate.Sub(time.Now())
 					if eventExist == false && nowDiff > 0 {
 						app.logger.Info("no records found in db, adding it!")
+
+						app.logger.Info(fmt.Sprintf("event summary: %s", event.Summary))
+						app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
+						app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
 
 						err = app.models.Event.Insert(&eventToCheck)
 						if err != nil {
