@@ -29,21 +29,21 @@ func (e EventModel) Insert(event *Event) error {
 	return nil
 }
 
-func (e EventModel) Get(ID string) (time.Time, error) {
+func (e EventModel) Get(ID string) (bool, time.Time, error) {
 	ctx := context.Background()
 	eventFound, err := e.DB.Get(ctx, ID).Result()
 	var date time.Time
 	if err != nil {
-		return date, err
+		return false, date, err
 	}
 	if eventFound != ID {
-		return date, nil
+		return false, date, nil
 	} else {
 		date, err := time.Parse(time.RFC3339, eventFound)
 		if err != nil {
-			return date, err
+			return false, date, err
 		}
-		return date, nil
+		return true, date, nil
 	}
 }
 

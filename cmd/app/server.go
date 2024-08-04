@@ -58,16 +58,13 @@ func (app *application) serve() error {
 						EndDate:     endDate,
 					}
 
-					var defaultTime time.Time
-					eventExist, err := app.models.Event.Get(event.Id)
-					if err != nil && eventExist == defaultTime {
+					eventExist, _, err := app.models.Event.Get(event.Id)
+					if err != nil {
 						app.logger.Error("Error while getting the event id from the DB", err)
-					} else if err == nil && eventExist == defaultTime {
-						app.logger.Info("EventId not found")
 					}
 
-					nowDiff := startDate.Sub(time.Now())
-					if eventExist != startDate && nowDiff > 0 {
+					nowDiff := eventToCheck.StartDate.Sub(time.Now())
+					if eventExist == false && nowDiff > 0 {
 						app.logger.Info("no records found in db, adding it!")
 
 						err = app.models.Event.Insert(&eventToCheck)
