@@ -29,6 +29,8 @@ func (app *application) serve() error {
 
 	go func() {
 		for {
+			app.logger.Info(fmt.Sprintf("Waiting %s to check events", app.config.polling))
+			time.Sleep(app.config.polling)
 			events, err := app.GetEvents()
 			if err != nil {
 				app.logger.Error("Unable to get calendar events: ", err.Error())

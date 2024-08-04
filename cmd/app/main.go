@@ -21,6 +21,7 @@ type Config struct {
 	service    *calendar.Service
 	calendarId string
 	timeSpan   time.Duration
+	polling    time.Duration
 }
 
 type application struct {
@@ -94,6 +95,12 @@ func main() {
 		panic(err.Error())
 	}
 
+	pollingRate, err := time.ParseDuration(os.Getenv("POLLING"))
+	if err != nil {
+		logger.Error("Unable to parse time from environment variable 'POLLING'")
+		panic(err.Error())
+	}
+
 	app := &application{
 		logger: logger,
 		models: data.NewModels(client),
@@ -103,6 +110,7 @@ func main() {
 			service:    service,
 			calendarId: calendarId,
 			timeSpan:   timeSpan,
+			polling:    pollingRate,
 		},
 		db: client,
 	}
