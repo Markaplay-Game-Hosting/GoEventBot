@@ -3,11 +3,29 @@ package main
 import (
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
 func (app *application) serve() error {
 	sendStatusChannel := make(chan data.Event)
+
+	shutdownError := make(chan error)
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		app.logger.Info("caught signal", map[string]string{
+			"signal": s.String(),
+		})
+
+		app.wg.Wait()
+		shutdownError <- nil
+	}()
 
 	go func() {
 		for {
@@ -69,5 +87,11 @@ func (app *application) serve() error {
 			}
 		}
 	}()
+
+	err := <-shutdownError
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
