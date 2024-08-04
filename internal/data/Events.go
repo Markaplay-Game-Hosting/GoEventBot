@@ -36,7 +36,7 @@ func (e EventModel) Get(ID string) (bool, time.Time, error) {
 	if err != nil {
 		return false, date, err
 	}
-	if eventFound != ID {
+	if eventFound == "" {
 		return false, date, nil
 	} else {
 		date, err := time.Parse(time.RFC3339, eventFound)
