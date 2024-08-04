@@ -80,7 +80,7 @@ kos:
     ko_data_creation_time: "{{.CommitTimestamp}}"
 
     # Whether to preserve the full import path after the repository name.
-    preserve_import_paths: true
+    preserve_import_paths: false
 
     # Whether to use the base path without the MD5 hash after the repository name.
     base_import_paths: true
