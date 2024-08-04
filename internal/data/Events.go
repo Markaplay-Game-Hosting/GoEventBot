@@ -21,8 +21,8 @@ type EventModel struct {
 func (e EventModel) Insert(event *Event) error {
 	ctx := context.Background()
 
-	timeLeft := time.Now().Sub(event.EndDate)
-	err := e.DB.Set(ctx, event.ID, nil, timeLeft).Err()
+	timeLeft := event.EndDate.Sub(time.Now())
+	err := e.DB.Set(ctx, event.ID, event.StartDate, timeLeft).Err()
 	if err != nil {
 		return err
 	}
