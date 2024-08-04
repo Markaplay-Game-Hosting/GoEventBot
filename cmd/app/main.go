@@ -20,6 +20,7 @@ type Config struct {
 	recipient  string
 	service    *calendar.Service
 	calendarId string
+	timeSpan   time.Duration
 }
 
 type application struct {
@@ -35,7 +36,7 @@ func (app *application) GetEvents() (*calendar.Events, error) {
 	rand.Int()
 	timeMin := time.Now().Format(time.RFC3339)
 
-	timeMax := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
+	timeMax := time.Now().Add(app.config.timeSpan).Format(time.RFC3339)
 
 	cal.TimeMin(timeMin)
 	cal.TimeMax(timeMax)
@@ -87,6 +88,12 @@ func main() {
 		sendTo = os.Getenv("SENDTO")
 	}
 
+	timeSpan, err := time.ParseDuration(os.Getenv("TIMESPAN"))
+	if err != nil {
+		logger.Error("Unable to parse time from environment variable 'TIMESPAN'")
+		panic(err.Error())
+	}
+
 	app := &application{
 		logger: logger,
 		models: data.NewModels(client),
@@ -95,6 +102,7 @@ func main() {
 			recipient:  sendTo,
 			service:    service,
 			calendarId: calendarId,
+			timeSpan:   timeSpan,
 		},
 		db: client,
 	}
