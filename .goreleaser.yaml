@@ -9,12 +9,10 @@
 version: 2
 
 before:
+  main: ./cmd/app
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
-    - go generate ./...
-    - main: ./cmd/app
 
 builds:
   - env:
