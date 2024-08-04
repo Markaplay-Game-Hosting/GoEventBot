@@ -45,6 +45,11 @@ kos:
     # Default: build.dir.
     working_dir: .
 
+    # Repository to push to.
+    #
+    # Default: '$KO_DOCKER_REPO'.
+    repository: ghcr.io/markaplay-game-hosting/goeventbot
+
     # Platforms to build and publish.
     #
     # Default: 'linux/amd64'.
