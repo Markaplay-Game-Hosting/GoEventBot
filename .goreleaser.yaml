@@ -9,7 +9,6 @@
 version: 2
 
 before:
-  main: ./cmd/app
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
@@ -20,6 +19,7 @@ builds:
     goos:
       - linux
       - windows
+    main: ./cmd/app
 
 archives:
   - format: tar.gz
