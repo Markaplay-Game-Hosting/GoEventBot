@@ -18,7 +18,7 @@ type Embed struct {
 	Color       int    `json:"color"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	TimeStamps  string `json:"timeStamps"`
+	TimeStamps  string `json:"timestamps"`
 }
 
 func (app *application) SendMessage(embeds []Embed) error {

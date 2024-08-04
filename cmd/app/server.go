@@ -40,11 +40,17 @@ func (app *application) serve() error {
 					app.logger.Info(fmt.Sprintf("event summary: %s", event.Summary))
 					app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
 					app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
+
+					var defaultTime time.Time
 					eventExist, err := app.models.Event.Get(event.Id)
-					if err != nil {
+					if err != nil && eventExist == defaultTime {
 						app.logger.Error("Error while getting the event id from the DB", err.Error())
+					} else if err == nil && eventExist == defaultTime {
+						app.logger.Info("EventId not found")
 					}
-					if eventExist == false {
+					startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)
+					nowDiff := startDate.Sub(time.Now())
+					if eventExist != startDate && nowDiff > 0 {
 						app.logger.Info("no records found in db, adding it!")
 
 						startDate, err := time.Parse(time.RFC3339, event.Start.DateTime)

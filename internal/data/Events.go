@@ -22,22 +22,27 @@ func (e EventModel) Insert(event *Event) error {
 	ctx := context.Background()
 
 	timeLeft := event.EndDate.Sub(time.Now())
-	err := e.DB.Set(ctx, event.ID, event.StartDate, timeLeft).Err()
+	err := e.DB.Set(ctx, event.ID, event.StartDate.Format(time.RFC3339), timeLeft).Err()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (e EventModel) Get(ID string) (bool, error) {
+func (e EventModel) Get(ID string) (time.Time, error) {
 	ctx := context.Background()
 	eventFound, err := e.DB.Get(ctx, ID).Result()
+	var date time.Time
 	if err != nil {
-		return false, err
+		return date, err
 	}
 	if eventFound != ID {
-		return false, nil
+		return date, nil
 	} else {
-		return true, nil
+		date, err := time.Parse(time.RFC3339, eventFound)
+		if err != nil {
+			return date, err
+		}
+		return date, nil
 	}
 }
