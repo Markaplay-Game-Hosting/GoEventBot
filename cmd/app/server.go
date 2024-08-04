@@ -60,7 +60,7 @@ func (app *application) serve() error {
 
 					eventExist, _, err := app.models.Event.Get(event.Id)
 					if err != nil {
-						app.logger.Error("Error while getting the event id from the DB", err)
+						app.logger.Error("Error while getting the event id from the DB", err.Error())
 					}
 
 					nowDiff := eventToCheck.StartDate.Sub(time.Now())
@@ -99,6 +99,9 @@ func (app *application) serve() error {
 	if err != nil {
 		return err
 	}
-
+	err = app.models.Event.DeleteAll()
+	if err != nil {
+		return err
+	}
 	return nil
 }

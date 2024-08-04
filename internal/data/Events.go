@@ -66,3 +66,19 @@ func (e EventModel) Delete(ID string) error {
 	}
 	return nil
 }
+
+func (e EventModel) DeleteAll() error {
+	ctx := context.Background()
+	all, err := e.GetAll()
+	if err != nil {
+		return err
+	}
+	for _, key := range all {
+		err := e.DB.Del(ctx, key).Err()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
