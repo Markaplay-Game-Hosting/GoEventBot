@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -33,8 +34,13 @@ func (e EventModel) Get(ID string) (bool, time.Time, error) {
 	ctx := context.Background()
 	eventFound, err := e.DB.Get(ctx, ID).Result()
 	var date time.Time
-	if err != nil {
+	switch {
+	case err == redis.Nil:
+		return false, date, errors.New("key does not exist")
+	case err != nil:
 		return false, date, err
+	case eventFound == "":
+		return false, date, errors.New("value is empty")
 	}
 	if eventFound == "" {
 		return false, date, nil
@@ -70,6 +76,7 @@ func (e EventModel) Delete(ID string) error {
 func (e EventModel) DeleteAll() error {
 	ctx := context.Background()
 	all, err := e.GetAll()
+
 	if err != nil {
 		return err
 	}

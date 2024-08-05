@@ -60,9 +60,9 @@ func (app *application) serve() error {
 					eventExist, _, err := app.models.Event.Get(event.Id)
 					if err != nil {
 						if errors.Is(err, redis.Nil) {
-							app.logger.Error("Key not found", err.Error())
+							app.logger.Error("Key not found", err)
 						} else {
-							app.logger.Error("Error while getting event id", err.Error())
+							app.logger.Error("Error while getting event id", err)
 						}
 					}
 
