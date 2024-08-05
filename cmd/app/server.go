@@ -56,9 +56,6 @@ func (app *application) serve() error {
 					}
 
 					eventExist, _ := app.models.Event.Get(event.Id)
-					if err != nil {
-						app.logger.Error("", err)
-					}
 
 					nowDiff := eventToCheck.StartDate.Sub(time.Now())
 					if eventExist == false && nowDiff > 0 {
