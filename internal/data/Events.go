@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"errors"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -30,26 +29,26 @@ func (e EventModel) Insert(event *Event) error {
 	return nil
 }
 
-func (e EventModel) Get(ID string) (bool, time.Time, error) {
+func (e EventModel) Get(ID string) (bool, time.Time) {
 	ctx := context.Background()
 	eventFound, err := e.DB.Get(ctx, ID).Result()
 	var date time.Time
 	switch {
 	case err == redis.Nil:
-		return false, date, errors.New("key does not exist")
+		return false, date
 	case err != nil:
-		return false, date, err
+		return false, date
 	case eventFound == "":
-		return false, date, errors.New("value is empty")
+		return false, date
 	}
 	if eventFound == "" {
-		return false, date, nil
+		return false, date
 	} else {
 		date, err := time.Parse(time.RFC3339, eventFound)
 		if err != nil {
-			return false, date, err
+			return false, date
 		}
-		return true, date, nil
+		return true, date
 	}
 }
 
