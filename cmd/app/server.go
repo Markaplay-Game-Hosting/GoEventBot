@@ -55,7 +55,7 @@ func (app *application) serve() error {
 						EndDate:     endDate,
 					}
 
-					eventExist, _, err := app.models.Event.Get(event.Id)
+					eventExist, _ := app.models.Event.Get(event.Id)
 					if err != nil {
 						app.logger.Error("", err)
 					}
