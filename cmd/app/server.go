@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
-	"github.com/redis/go-redis/v9"
 	"os"
 	"os/signal"
 	"syscall"
@@ -59,11 +57,7 @@ func (app *application) serve() error {
 
 					eventExist, _, err := app.models.Event.Get(event.Id)
 					if err != nil {
-						if errors.Is(err, redis.Nil) {
-							app.logger.Error("Key not found", err)
-						} else {
-							app.logger.Error("Error while getting event id", err)
-						}
+						app.logger.Error("", err)
 					}
 
 					nowDiff := eventToCheck.StartDate.Sub(time.Now())
