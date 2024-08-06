@@ -33,12 +33,11 @@ func (e EventModel) Get(ID string) (bool, time.Time) {
 	ctx := context.Background()
 	eventFound, err := e.DB.Get(ctx, ID).Result()
 	var date time.Time
-	switch {
-	case err != nil:
-		return false, date
-	case eventFound == "":
+
+	if err != nil {
 		return false, date
 	}
+
 	if eventFound == "" {
 		return false, date
 	} else {
