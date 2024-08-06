@@ -34,8 +34,6 @@ func (e EventModel) Get(ID string) (bool, time.Time) {
 	eventFound, err := e.DB.Get(ctx, ID).Result()
 	var date time.Time
 	switch {
-	case err == redis.Nil:
-		return false, date
 	case err != nil:
 		return false, date
 	case eventFound == "":
