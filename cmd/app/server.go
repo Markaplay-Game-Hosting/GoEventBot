@@ -61,9 +61,11 @@ func (app *application) serve() error {
 					if eventExist == false && nowDiff > 0 {
 						app.logger.Info("no records found in db, adding it!")
 
-						app.logger.Info(fmt.Sprintf("event summary: %s", event.Summary))
-						app.logger.Info(fmt.Sprintf("event description: %s", event.Description))
-						app.logger.Info(fmt.Sprintf("event start date: %s", event.Start.DateTime))
+						app.logger.Info(fmt.Sprintf("event ID: %s", event.Id))
+						app.logger.Info(fmt.Sprintf("event summary: %s", eventToCheck.Title))
+						app.logger.Info(fmt.Sprintf("event description: %s", eventToCheck.Description))
+						app.logger.Info(fmt.Sprintf("event start date: %s", eventToCheck.StartDate))
+						app.logger.Info(fmt.Sprintf("event start date: %s", event.End.DateTime))
 
 						err = app.models.Event.Insert(&eventToCheck)
 						if err != nil {
