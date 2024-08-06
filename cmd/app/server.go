@@ -55,10 +55,10 @@ func (app *application) serve() error {
 						EndDate:     endDate,
 					}
 
-					eventExist, _ := app.models.Event.Get(event.Id)
+					eventExist, eventStartDate := app.models.Event.Get(event.Id)
 
 					nowDiff := eventToCheck.StartDate.Sub(time.Now())
-					if eventExist == false && nowDiff > 0 {
+					if eventExist == false && nowDiff > 0 && eventStartDate != eventToCheck.StartDate {
 						app.logger.Info("no records found in db, adding it!")
 
 						app.logger.Info(fmt.Sprintf("event ID: %s", event.Id))
