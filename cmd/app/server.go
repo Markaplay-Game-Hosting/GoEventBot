@@ -47,17 +47,19 @@ func (app *application) serve() error {
 						app.logger.Error("error while converting end date to time.Time", err.Error())
 					}
 
+					now := time.Now().UTC()
+
 					eventToCheck := data.Event{
 						ID:          event.Id,
 						Title:       event.Summary,
 						Description: event.Description,
-						StartDate:   startDate,
-						EndDate:     endDate,
+						StartDate:   time.Date(now.Year(), now.Month(), now.Day(), startDate.Hour(), startDate.Minute(), 0, 0, time.UTC),
+						EndDate:     time.Date(now.Year(), now.Month(), now.Day(), endDate.Hour(), endDate.Minute(), 0, 0, time.UTC),
 					}
 
 					eventExist, eventStartDate := app.models.Event.Get(event.Id)
 
-					nowDiff := eventToCheck.StartDate.Sub(time.Now())
+					nowDiff := eventToCheck.StartDate.Sub(now)
 					if eventExist == false && nowDiff > 0 && eventStartDate != eventToCheck.StartDate {
 						app.logger.Info("no records found in db, adding it!")
 
@@ -76,7 +78,13 @@ func (app *application) serve() error {
 
 						go Timer(eventToCheck, sendStatusChannel)
 					} else {
-						app.logger.Info("Event already registered in the DB!")
+						if eventExist == true {
+							app.logger.Info("Event already registered in the DB")
+						} else if nowDiff < 0 {
+							app.logger.Info("Event already passed or is ongoing")
+						} else if eventStartDate == eventToCheck.StartDate {
+							app.logger.Info("Event start date didn't changed")
+						}
 					}
 				}
 			}
