@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"io"
 	"net/http"
@@ -21,10 +22,10 @@ type Embed struct {
 	TimeStamps  string `json:"timestamp"`
 }
 
-func (app *application) SendMessage(embeds []Embed) error {
+func (app *application) SendMessage(embeds []Embed, title string) error {
 
 	body := DiscordBody{
-		Content: app.config.recipient,
+		Content: fmt.Sprintf("%s %s", app.config.recipient, title),
 		Embeds:  embeds,
 	}
 	bodyJson, err := json.Marshal(body)

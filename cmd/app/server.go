@@ -67,7 +67,7 @@ func (app *application) serve() error {
 						app.logger.Info(fmt.Sprintf("event summary: %s", eventToCheck.Title))
 						app.logger.Info(fmt.Sprintf("event description: %s", eventToCheck.Description))
 						app.logger.Info(fmt.Sprintf("event start date: %s", eventToCheck.StartDate))
-						app.logger.Info(fmt.Sprintf("event start date: %s", event.End.DateTime))
+						app.logger.Info(fmt.Sprintf("event end date: %s", eventToCheck.EndDate))
 
 						err = app.models.Event.Insert(&eventToCheck)
 						if err != nil {
@@ -94,7 +94,7 @@ func (app *application) serve() error {
 	go func() {
 		for eventInfo := range sendStatusChannel {
 			msg := FormatMessage(eventInfo)
-			err := app.SendMessage(msg)
+			err := app.SendMessage(msg, eventInfo.Title)
 			if err != nil {
 				app.logger.Error("Unable to send message", err.Error())
 			} else {
