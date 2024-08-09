@@ -60,7 +60,7 @@ func (app *application) serve() error {
 					eventExist, eventStartDate := app.models.Event.Get(event.Id)
 
 					nowDiff := eventToCheck.StartDate.Sub(now)
-					if eventExist == false && nowDiff > 0 && eventStartDate != eventToCheck.StartDate {
+					if eventExist == false && nowDiff > 0 && eventStartDate != eventToCheck.StartDate && event.Status == "confirmed" {
 						app.logger.Info("no records found in db, adding it!")
 
 						app.logger.Info(fmt.Sprintf("event ID: %s", event.Id))
@@ -84,6 +84,8 @@ func (app *application) serve() error {
 							app.logger.Info("Event already passed or is ongoing")
 						} else if eventStartDate == eventToCheck.StartDate {
 							app.logger.Info("Event start date didn't changed")
+						} else if event.Status != "confirmed" {
+							app.logger.Info(fmt.Sprintf("Event is not confirmed: %s", event.Status))
 						}
 					}
 				}
