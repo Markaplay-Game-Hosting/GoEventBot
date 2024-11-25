@@ -45,7 +45,7 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	logger.Info("Starting checker")
 	ctx := context.Background()
-	service, err := calendar.NewService(ctx, option.WithScopes(calendar.CalendarSettingsReadonlyScope), option.WithoutAuthentication())
+	service, err := calendar.NewService(ctx, option.WithoutAuthentication())
 	if err != nil {
 		logger.Error("Unable to authenticate to google services")
 		panic(err.Error())
