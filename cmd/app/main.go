@@ -53,7 +53,7 @@ func main() {
 
 	calendarId := os.Getenv("CALENDAR_ID")
 	if calendarId == "" {
-		logger.Error("environment variable 'CALENDAR_ID' is not set", err.Error())
+		logger.Error("environment variable 'CALENDAR_ID' is not set", "error", err.Error())
 		panic(err)
 	}
 
@@ -65,7 +65,7 @@ func main() {
 
 	client := ConfigureDB()
 
-	var sendTo = "@everyone"
+	var sendTo = ""
 	if os.Getenv("SENDTO") != "" {
 		logger.Info(fmt.Sprintf("using %s", os.Getenv("SENDTO")))
 		sendTo = os.Getenv("SENDTO")
