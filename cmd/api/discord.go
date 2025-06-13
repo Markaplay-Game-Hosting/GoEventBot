@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"time"
@@ -22,10 +23,10 @@ type Embed struct {
 	TimeStamps  string `json:"timestamp"`
 }
 
-func (app *application) SendMessage(embeds []Embed, title string) error {
+func (app *application) SendMessage(embeds []Embed, title string, webhookId uuid.UUID) error {
 
 	body := DiscordBody{
-		Content: fmt.Sprintf("%s %s", app.config.recipient, title),
+		Content: title,
 		Embeds:  embeds,
 	}
 	bodyJson, err := json.Marshal(body)
@@ -34,7 +35,12 @@ func (app *application) SendMessage(embeds []Embed, title string) error {
 		app.logger.Error("Unable to format body to send the message", err.Error())
 		return err
 	}
-	resp, err := http.Post(app.config.webhook, "application/json", bytes.NewBuffer(bodyJson))
+	webhook, err := app.models.Webhooks.GetByID(webhookId)
+	if err != nil {
+		app.logger.Error("Unable to get webhook by ID", "Error", err.Error())
+		return fmt.Errorf("unable to get webhook by ID: %w", err)
+	}
+	resp, err := http.Post(webhook.URL, "application/json", bytes.NewBuffer(bodyJson))
 	if err != nil {
 		app.logger.Error("Unable to send message", err.Error())
 		return err

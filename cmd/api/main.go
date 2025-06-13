@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/vcs"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"log"
 	"log/slog"
@@ -42,10 +43,11 @@ type config struct {
 }
 
 type application struct {
-	config config
-	logger *slog.Logger
-	models data.Models
-	wg     sync.WaitGroup
+	config                 config
+	logger                 *slog.Logger
+	models                 data.Models
+	scheduledEventsTracker map[uuid.UUID]data.Event
+	wg                     sync.WaitGroup
 }
 
 func main() {
