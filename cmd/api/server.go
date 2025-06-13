@@ -47,10 +47,6 @@ func (app *application) serve() error {
 		shutdownError <- nil
 	}()
 
-	go func() {
-
-	}()
-
 	app.logger.Info("starting server", "details", map[string]string{
 		"addr": srv.Addr,
 		"env":  app.config.Env,
