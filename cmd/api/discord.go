@@ -62,12 +62,16 @@ func (app *application) SendMessage(embeds []Embed, title string, webhookId uuid
 func FormatMessage(event data.Event) []Embed {
 	var embed Embed
 	var embeds []Embed
-
+	rrule, err := ParseRRule(event.RRule)
+	if err != nil {
+		fmt.Println("Error parsing RRule:", err)
+		return nil
+	}
 	embed.Title = event.Title
 	embed.Description = event.Description
 	// https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
 	embed.Color = 15105570
-	embed.TimeStamps = event.StartDate.Format(time.RFC3339)
+	embed.TimeStamps = rrule.After(time.Now(), false).Format(time.RFC3339)
 	embeds = append(embeds, embed)
 	return embeds
 }

@@ -15,10 +15,14 @@ type eventScheduler struct {
 var eventsLoaded chan uuid.UUID = make(chan uuid.UUID)
 
 func (app *application) NewScheduleEvent(event data.Event) *eventScheduler {
-
+	rrule, err := ParseRRule(event.RRule)
+	if err != nil {
+		app.logger.Error("Unable to parse RRule", "error", err)
+		return nil
+	}
 	return &eventScheduler{
 		JobQueue: make(chan Scheduler),
-		Time:     event.StartDate,
+		Time:     rrule.After(time.Now(), false),
 		Event:    event,
 	}
 }

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS events(
     description text NOT NULL,
     start_date timestamp(0) with time zone NOT NULL,
     end_date timestamp(0) with time zone NULL,
-    duration interval NOT NULL,
+    duration text NOT NULL,
     rrule text NULL,
     webhook_id uuid NULL,
     is_active bool NOT NULL DEFAULT true,

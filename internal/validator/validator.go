@@ -1,6 +1,7 @@
 package validator
 
 import (
+	duration "github.com/channelmeter/iso8601duration"
 	"github.com/teambition/rrule-go"
 	"regexp"
 )
@@ -62,4 +63,13 @@ func (v *Validator) IsValidRRule(s string) {
 	if err != nil {
 		v.AddError("rrule", "must be a valid RRULE format: "+err.Error())
 	}
+}
+
+func (v *Validator) IsValidDurationRule(s string) bool {
+	_, err := duration.FromString(s)
+	if err != nil {
+		v.AddError("duration", "must be a valid ISO 8601 duration format: "+err.Error())
+		return false
+	}
+	return true
 }

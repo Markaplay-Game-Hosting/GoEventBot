@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
 	"net/http"
 	"time"
@@ -11,11 +12,11 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 	test, _ := time.ParseDuration("5m")
 	app.logger.Info("test: ", "info", test)
 	var input struct {
-		Title       string        `json:"title"`
-		Description string        `json:"description"`
-		Duration    time.Duration `json:"duration"`
-		RRule       string        `json:"rrule,omitempty"`
-		WebhookId   uuid.UUID     `json:"webhook_id"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		Duration    string    `json:"duration"`
+		RRule       string    `json:"rrule"`
+		WebhookId   uuid.UUID `json:"webhook_id"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
@@ -23,8 +24,8 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	time.Minute
-	event := data.Event{
+
+	event := &data.Event{
 		Title:       input.Title,
 		Description: input.Description,
 		Duration:    input.Duration,
@@ -33,7 +34,13 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 		WebhookID:   input.WebhookId,
 	}
 
-	if err := app.models.Events.Insert(&event); err != nil {
+	v := validator.New()
+	if data.ValidateEvent(v, event); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	if err := app.models.Events.Insert(event); err != nil {
 		app.logger.Error("Unable to insert event", err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -99,14 +106,12 @@ func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Title       string        `json:"title,omitempty"`
-		Description string        `json:"description,omitempty"`
-		StartDate   time.Time     `json:"start_date,omitempty"`
-		EndDate     time.Time     `json:"end_date,omitempty"`
-		Duration    time.Duration `json:"duration,omitempty"`
-		Interval    time.Duration `json:"interval,omitempty"`
-		IsActive    bool          `json:"is_active,omitempty"`
-		WebhookId   uuid.UUID     `json:"webhook_id,omitempty"`
+		Title       string    `json:"title,omitempty"`
+		Description string    `json:"description,omitempty"`
+		Duration    string    `json:"duration,omitempty"`
+		RRule       string    `json:"rrule,omitempty"`
+		IsActive    bool      `json:"is_active,omitempty"`
+		WebhookId   uuid.UUID `json:"webhook_id,omitempty"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
@@ -126,17 +131,11 @@ func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 	if input.Description != "" {
 		event.Description = input.Description
 	}
-	if !input.StartDate.IsZero() {
-		event.StartDate = input.StartDate
-	}
-	if !input.EndDate.IsZero() {
-		event.EndDate = input.EndDate
-	}
-	if input.Duration != 0 {
+	if input.Duration != "" {
 		event.Duration = input.Duration
 	}
-	if input.Interval != 0 {
-		event.Interval = input.Interval
+	if input.RRule != "" {
+		event.RRule = input.RRule
 	}
 	if input.IsActive != event.IsActive {
 		event.IsActive = input.IsActive
