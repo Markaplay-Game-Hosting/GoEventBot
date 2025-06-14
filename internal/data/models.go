@@ -2,6 +2,12 @@ package data
 
 import (
 	"database/sql"
+	"errors"
+)
+
+var (
+	ErrRecordNotFound = errors.New("record not found")
+	ErrEditConflict   = errors.New("edit conflict")
 )
 
 type Models struct {
@@ -11,6 +17,7 @@ type Models struct {
 	Events      EventModel
 	Webhooks    WebhookModel
 	Jobs        JobModel
+	OAuth       OAuthModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -21,5 +28,6 @@ func NewModels(db *sql.DB) Models {
 		Events:      EventModel{DB: db},
 		Webhooks:    WebhookModel{DB: db},
 		Jobs:        JobModel{DB: db},
+		OAuth:       OAuthModel{},
 	}
 }

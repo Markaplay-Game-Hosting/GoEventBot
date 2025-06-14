@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/vcs"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
 	"log"
 	"log/slog"
 	"os"
@@ -36,10 +38,13 @@ type config struct {
 		RPS     float64 `yaml:"rps"`
 		Burst   int     `yaml:"burst"`
 	} `yaml:"limiter"`
-
 	Cors struct {
 		TrustedOrigins []string `yaml:"trusted_origins"`
 	} `yaml:"cors"`
+	Discord struct {
+		ClientID     string `yaml:"client_id"`
+		ClientSecret string `yaml:"client_secret"`
+	}
 }
 
 type application struct {
@@ -47,6 +52,8 @@ type application struct {
 	logger                 *slog.Logger
 	models                 data.Models
 	scheduledEventsTracker map[uuid.UUID]data.Event
+	oauth2Config           oauth2.Config
+	provider               *oidc.Provider
 	wg                     sync.WaitGroup
 }
 
@@ -56,11 +63,10 @@ func main() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/etc/octomation/")
 
 	viper.SetDefault("Port", 8080)
 	viper.SetDefault("Env", "development")
-	viper.SetDefault("DB.DSN", "host=localhost port=5432 user=postgres password=postgres dbname=octomation sslmode=disable")
+	viper.SetDefault("DB.DSN", "host=localhost port=5432 user=postgres password=postgres dbname=event sslmode=disable")
 	viper.SetDefault("DB.MaxOpenConns", 25)
 	viper.SetDefault("DB.MaxIdleConns", 25)
 	viper.SetDefault("DB.MaxIdleTime", "15m")
@@ -68,6 +74,8 @@ func main() {
 	viper.SetDefault("Limiter.RPS", 2)
 	viper.SetDefault("Limiter.Burst", 4)
 	viper.SetDefault("Cors.TrustedOrigins", []string{"http://localhost:3000"})
+	viper.SetDefault("Discord.ClientID", "")
+	viper.SetDefault("Discord.ClientSecret", "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Panic("Error reading config file: ", err)
@@ -96,6 +104,12 @@ func main() {
 
 	logger.Info("database connection pool established")
 
+	oauth2Config, provider, err := setupOauth(cfg)
+	if err != nil {
+		logger.Error("Error setting up OAuth2 configuration: ", err)
+		os.Exit(1)
+	}
+
 	expvar.NewString("version").Set(version)
 
 	expvar.Publish("goroutines", expvar.Func(func() any {
@@ -111,9 +125,11 @@ func main() {
 	}))
 
 	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
+		config:       cfg,
+		logger:       logger,
+		models:       data.NewModels(db),
+		oauth2Config: oauth2Config,
+		provider:     provider,
 	}
 
 	err = app.serve()
@@ -147,4 +163,25 @@ func openDB(cfg config) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func setupOauth(cfg config) (oauth2.Config, *oidc.Provider, error) {
+	ctx := context.Background()
+	var oauth2Config oauth2.Config
+	var provider *oidc.Provider
+	redirectUrl := fmt.Sprintf("http://localhost:%d/oauth/callback", cfg.Port)
+	provider, err := oidc.NewProvider(ctx, "https://discord.com")
+	if err != nil {
+		return oauth2Config, provider, err
+	}
+	endpoints := provider.Endpoint()
+	oauth2Config = oauth2.Config{
+		ClientID:     cfg.Discord.ClientID,
+		ClientSecret: cfg.Discord.ClientSecret,
+		Endpoint:     endpoints,
+		RedirectURL:  redirectUrl,
+		Scopes:       []string{"identify", "guilds.join"},
+	}
+
+	return oauth2Config, provider, nil
 }

@@ -8,7 +8,7 @@ type Scheduler interface {
 
 func (app *application) Execute(event data.Event) {
 	msg := FormatMessage(event)
-	err := app.SendMessage(msg, event.Title)
+	err := app.SendMessage(msg, event.Title, event.WebhookID)
 	if err != nil {
 		app.logger.Error("Unable to send message", err.Error())
 	} else {

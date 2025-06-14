@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/lib/pq"
@@ -23,7 +24,7 @@ type PermissionModel struct {
 	DB *sql.DB
 }
 
-func (m PermissionModel) GetAllForUser(userID int64) (Permissions, error) {
+func (m PermissionModel) GetAllForUser(userID uuid.UUID) (Permissions, error) {
 	query := `
         SELECT permissions.code
         FROM permissions
@@ -59,7 +60,7 @@ func (m PermissionModel) GetAllForUser(userID int64) (Permissions, error) {
 	return permissions, nil
 }
 
-func (m PermissionModel) AddForUser(userID int64, codes ...string) error {
+func (m PermissionModel) AddForUser(userID uuid.UUID, codes ...string) error {
 	query := `
         INSERT INTO users_permissions
         SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)`

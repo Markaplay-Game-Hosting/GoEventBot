@@ -4,23 +4,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
+	"github.com/google/uuid"
+	"github.com/teambition/rrule-go"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *application) readIDParam(r *http.Request) (int64, error) {
+func (app *application) readIDParam(r *http.Request) (uuid.UUID, error) {
 	params := httprouter.ParamsFromContext(r.Context())
-
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err != nil || id < 1 {
-		return 0, errors.New("invalid id parameter")
+	id, err := uuid.Parse(params.ByName("id"))
+	if err != nil || id == uuid.Nil {
+		return uuid.Nil, errors.New("invalid id parameter")
 	}
 
 	return id, nil
@@ -98,6 +99,21 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	}
 
 	return nil
+}
+
+func ParseRRule(s string) (*rrule.RRule, error) {
+	// ensure RRULE: prefix
+	if !strings.HasPrefix(strings.ToUpper(s), "RRULE:") {
+		s = "RRULE:" + s
+	}
+
+	// if no DTSTART, append one at UTC now
+	if !strings.Contains(strings.ToUpper(s), "DTSTART=") {
+		dt := time.Now().UTC().Format("20060102T150405Z")
+		s = s + ";DTSTART=" + dt
+	}
+
+	return rrule.StrToRRule(s)
 }
 
 func (app *application) readString(qs url.Values, key string, defaultValue string) string {

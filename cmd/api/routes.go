@@ -19,11 +19,18 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.updateUserPasswordHandler)
 
+	router.HandlerFunc(http.MethodGet, "/oauth/authenticate", app.authenticateHandler)
+	router.HandlerFunc(http.MethodPost, "/oauth/callback", app.callbackHandler)
+
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/events", app.listEventsHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/events", app.createEventHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/events/:id", app.getEventHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/events", app.getAllEventsHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/events/:id", app.updateEventHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/events/:id", app.deleteEventHandler)
 
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
-	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router)))))
+	return app.metrics(app.setTracingId(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))))
 }

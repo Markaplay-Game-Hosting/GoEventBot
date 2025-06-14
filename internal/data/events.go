@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
 	"time"
 )
@@ -13,13 +14,20 @@ type Event struct {
 	Title       string        `json:"title"`
 	Description string        `json:"description"`
 	Duration    time.Duration `json:"duration"`
-	Interval    time.Duration `json:"repeat_interval,omitempty"`
-	StartDate   time.Time     `json:"start_date"`
-	EndDate     time.Time     `json:"end_date,omitempty"`
+	RRule       string        `json:"rrule,omitempty"`
 	IsActive    bool          `json:"is_active"`
 	WebhookID   uuid.UUID     `json:"webhook_id"`
 	CreatedDate time.Time     `json:"created_date"`
 	UpdatedDate time.Time     `json:"updated_date"`
+}
+
+func ValidateEvent(v *validator.Validator, event *Event) {
+	v.Check(event.Title != "", "title", "must be provided")
+	v.Check(len(event.Title) <= 100, "title", "must not be more than 100 bytes long")
+	v.Check(event.Description != "", "description", "must be provided")
+	v.Check(event.Duration > 0, "duration", "must be greater than zero")
+
+	v.IsValidRRule(event.RRule)
 }
 
 type EventModel struct {
@@ -27,9 +35,9 @@ type EventModel struct {
 }
 
 func (e EventModel) Insert(event *Event) error {
-	query := `INSERT INTO events (id, title, description, start_date, end_date, webhook_id, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_date, updated_date`
+	query := `INSERT INTO events (id, title, description, duration, rrule, webhook_id, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_date, updated_date`
 
-	args := []any{event.ID, event.Title, event.Description, event.StartDate, event.EndDate}
+	args := []any{event.ID, event.Title, event.Description, event.Duration, event.RRule, event.WebhookID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -43,7 +51,7 @@ func (e EventModel) Insert(event *Event) error {
 }
 
 func (e EventModel) Get(ID string) (Event, error) {
-	query := `SELECT id, title, description, start_date, end_date, is_active, created_date, updated_date FROM events WHERE id = $1`
+	query := `SELECT id, title, description, is_active, duration, rrule, created_date, updated_date FROM events WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -53,9 +61,9 @@ func (e EventModel) Get(ID string) (Event, error) {
 		&event.ID,
 		&event.Title,
 		&event.Description,
-		&event.StartDate,
-		&event.EndDate,
 		&event.IsActive,
+		&event.Duration,
+		&event.RRule,
 		&event.CreatedDate,
 		&event.UpdatedDate,
 	)
@@ -72,7 +80,7 @@ func (e EventModel) Get(ID string) (Event, error) {
 
 func (e EventModel) GetAll() ([]Event, error) {
 	var events []Event
-	query := `SELECT id, title, description, start_date, end_date, is_active FROM events`
+	query := `SELECT id, title, description, duration, rrule, is_active FROM events`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := e.DB.QueryContext(ctx, query)
@@ -87,10 +95,9 @@ func (e EventModel) GetAll() ([]Event, error) {
 			&event.ID,
 			&event.Title,
 			&event.Description,
-			&event.StartDate,
-			&event.EndDate,
-			&event.CreatedDate,
-			&event.UpdatedDate,
+			&event.Duration,
+			&event.RRule,
+			&event.IsActive,
 		)
 		if err != nil {
 			return nil, err
@@ -105,9 +112,9 @@ func (e EventModel) GetAll() ([]Event, error) {
 }
 
 func (e EventModel) Update(event *Event) error {
-	query := `UPDATE events SET title = $1, description = $2, start_date = $3, end_date = $4, is_active = $5, updated_date = NOW() WHERE id = $6 RETURNING updated_date`
+	query := `UPDATE events SET title = $1, description = $2, is_active = $5, duration = $6, rrule = $7, updated_date = NOW() WHERE id = $6 RETURNING updated_date`
 
-	args := []any{event.Title, event.Description, event.StartDate, event.EndDate, event.IsActive, event.ID}
+	args := []any{event.Title, event.Description, event.IsActive, event.ID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -142,7 +149,7 @@ func (e EventModel) Delete(ID string) error {
 }
 
 func (e EventModel) GetActiveEvents() ([]Event, error) {
-	query := `SELECT id, title, description, start_date, end_date, duration, interval, webhook_id, FROM events WHERE is_active = true`
+	query := `SELECT id, title, description, duration, rrule, webhook_id FROM events WHERE is_active = true`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -159,10 +166,8 @@ func (e EventModel) GetActiveEvents() ([]Event, error) {
 			&event.ID,
 			&event.Title,
 			&event.Description,
-			&event.StartDate,
-			&event.EndDate,
 			&event.Duration,
-			&event.Interval,
+			&event.RRule,
 			&event.WebhookID,
 		)
 		if err != nil {

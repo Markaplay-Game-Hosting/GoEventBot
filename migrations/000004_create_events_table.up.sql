@@ -5,9 +5,9 @@ CREATE TABLE IF NOT EXISTS events(
     start_date timestamp(0) with time zone NOT NULL,
     end_date timestamp(0) with time zone NULL,
     duration interval NOT NULL,
-    repeat_interval interval NULL,
+    rrule text NULL,
+    webhook_id uuid NULL,
     is_active bool NOT NULL DEFAULT true,
-    webhook_id uuid NOT NULL REFERENCES webhooks ON DELETE CASCADE,
     created_date timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_date timestamp(0) with time zone NOT NULL DEFAULT NOW()
 )

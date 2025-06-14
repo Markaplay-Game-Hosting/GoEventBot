@@ -4,6 +4,7 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"strconv"
 	"strings"
@@ -206,6 +207,15 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) setTracingId(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tracingID := uuid.New().String()
+		r.Header.Add("X-Trace-ID", tracingID)
+		next.ServeHTTP(w, r)
+
 	})
 }
 

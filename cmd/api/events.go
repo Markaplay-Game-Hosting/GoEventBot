@@ -7,15 +7,14 @@ import (
 	"time"
 )
 
-func (app *application) CreateEvent(w http.ResponseWriter, r *http.Request) {
-
+func (app *application) createEventHandler(w http.ResponseWriter, r *http.Request) {
+	test, _ := time.ParseDuration("5m")
+	app.logger.Info("test: ", "info", test)
 	var input struct {
 		Title       string        `json:"title"`
 		Description string        `json:"description"`
-		StartDate   time.Time     `json:"start_date"`
-		EndDate     time.Time     `json:"end_date,omitempty"`
 		Duration    time.Duration `json:"duration"`
-		Interval    time.Duration `json:"interval,omitempty"`
+		RRule       string        `json:"rrule,omitempty"`
 		WebhookId   uuid.UUID     `json:"webhook_id"`
 	}
 
@@ -24,13 +23,12 @@ func (app *application) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+	time.Minute
 	event := data.Event{
 		Title:       input.Title,
 		Description: input.Description,
 		Duration:    input.Duration,
-		Interval:    input.Interval,
-		StartDate:   input.StartDate,
-		EndDate:     input.EndDate,
+		RRule:       input.RRule,
 		IsActive:    true,
 		WebhookID:   input.WebhookId,
 	}
@@ -42,7 +40,7 @@ func (app *application) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *application) GetEvent(w http.ResponseWriter, r *http.Request) {
+func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID := r.URL.Query().Get("id")
 	if eventID == "" {
 		http.Error(w, "Event ID is required", http.StatusBadRequest)
@@ -62,7 +60,7 @@ func (app *application) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *application) GetAllEvents(w http.ResponseWriter, r *http.Request) {
+func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.models.Events.GetAll()
 	if err != nil {
 		app.logger.Error("Unable to get all events", err.Error())
@@ -76,7 +74,7 @@ func (app *application) GetAllEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *application) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID := r.URL.Query().Get("id")
 	if eventID == "" {
 		http.Error(w, "Event ID is required", http.StatusBadRequest)
@@ -93,7 +91,7 @@ func (app *application) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (app *application) UpdateEvent(w http.ResponseWriter, r *http.Request) {
+func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID := r.URL.Query().Get("id")
 	if eventID == "" {
 		http.Error(w, "Event ID is required", http.StatusBadRequest)
@@ -154,7 +152,7 @@ func (app *application) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *application) GetActiveEvents(w http.ResponseWriter, r *http.Request) {
+func (app *application) getActiveEventsHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.models.Events.GetActiveEvents()
 	if err != nil {
 		app.logger.Error("Unable to get active events", err.Error())

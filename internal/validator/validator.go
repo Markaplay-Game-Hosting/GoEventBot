@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"github.com/teambition/rrule-go"
 	"regexp"
 )
 
@@ -53,4 +54,12 @@ func Unique[T comparable](values []T) bool {
 	}
 
 	return len(values) == len(uniqueValues)
+}
+
+func (v *Validator) IsValidRRule(s string) {
+	// A simple check to see if the string starts with "RRULE:"
+	_, err := rrule.StrToRRule(s)
+	if err != nil {
+		v.AddError("rrule", "must be a valid RRULE format: "+err.Error())
+	}
 }

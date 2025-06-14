@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
@@ -19,7 +20,7 @@ var (
 var AnonymousUser = &User{}
 
 type User struct {
-	ID        int64     `json:"id"`
+	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
@@ -117,6 +118,64 @@ func (m UserModel) Insert(user *User) error {
 	return nil
 }
 
+func (m UserModel) GetAll() ([]*User, error) {
+	query := `
+		SELECT id, created_at, name, email, password_hash, activated, version
+		FROM users
+		ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*User
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(
+			&user.ID,
+			&user.CreatedAt,
+			&user.Name,
+			&user.Email,
+			&user.Password.hash,
+			&user.Activated,
+			&user.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+
+}
+
+func (m UserModel) ValidateIsFirstUser() bool {
+	query := `
+		SELECT COUNT(*) 
+		FROM users`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var count int
+	err := m.DB.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return false
+	}
+
+	return count == 0
+}
 func (m UserModel) GetByEmail(email string) (*User, error) {
 	query := `
         SELECT id, created_at, name, email, password_hash, activated, version

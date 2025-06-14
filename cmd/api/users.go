@@ -19,11 +19,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	var isFirstUser = app.models.Users.ValidateIsFirstUser()
 
 	user := &data.User{
 		Name:      input.Name,
 		Email:     input.Email,
-		Activated: false,
+		Activated: isFirstUser,
 	}
 
 	err = user.Password.Set(input.Password)
@@ -51,10 +52,18 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.models.Permissions.AddForUser(user.ID, "movies:read")
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
+	if isFirstUser {
+		err = app.models.Permissions.AddForUser(user.ID, "admin:read", "admin:write")
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	} else {
+		err = app.models.Permissions.AddForUser(user.ID, "user:read")
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 
 	err = app.writeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
