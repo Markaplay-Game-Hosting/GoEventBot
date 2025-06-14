@@ -32,10 +32,19 @@ func (e *eventScheduler) StartScheduleEvent(app *application) {
 	eventsLoaded <- e.Event.ID
 	for {
 		delay := time.Until(e.Time)
+		if delay <= 0 {
+			break
+		}
 		time.AfterFunc(delay, func() {
 			event := <-e.JobQueue
 			event.Execute(e.Event)
 		})
+		// Update e.Time to the next occurrence based on the recurrence rule
+		nextTime := ParseRRule(e.Event.RRule).After(e.Time, false)
+		if nextTime.IsZero() {
+			break // Exit loop if no further occurrences
+		}
+		e.Time = nextTime
 	}
 }
 

@@ -5,12 +5,10 @@ import (
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
 	"net/http"
-	"time"
 )
 
 func (app *application) createEventHandler(w http.ResponseWriter, r *http.Request) {
-	test, _ := time.ParseDuration("5m")
-	app.logger.Info("test: ", "info", test)
+
 	var input struct {
 		Title       string    `json:"title"`
 		Description string    `json:"description"`
