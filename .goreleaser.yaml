@@ -19,7 +19,7 @@ builds:
     goos:
       - linux
       - windows
-    main: ./cmd/app
+    main: ./cmd/api
 
 archives:
   - format: tar.gz

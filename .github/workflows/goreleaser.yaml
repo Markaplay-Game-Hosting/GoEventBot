@@ -3,8 +3,11 @@ name: goreleaser
 
 on:
   pull_request:
+      branches:
+        - prod
   push:
-    # run only against tags
+    branches:
+      - prod
     tags:
       - "*"
 

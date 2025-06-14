@@ -93,18 +93,6 @@ func (app *application) serve() error {
 		}
 	}()
 
-	go func() {
-		for eventInfo := range sendStatusChannel {
-			msg := FormatMessage(eventInfo)
-			err := app.SendMessage(msg, eventInfo.Title)
-			if err != nil {
-				app.logger.Error("Unable to send message", err.Error())
-			} else {
-				app.logger.Info("Message sent successfully")
-			}
-		}
-	}()
-
 	err := <-shutdownError
 	if err != nil {
 		return err
