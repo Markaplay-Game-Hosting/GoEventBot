@@ -43,7 +43,7 @@ func (e *eventScheduler) StartScheduleEvent(app *application) {
 		nextRule, err := ParseRRule(e.Event.RRule)
 		if err != nil {
 			app.logger.Error("Unable to parse RRule", "error", err)
-			return
+			continue
 		}
 		nextTime := nextRule.After(e.Time, false)
 		if nextTime.IsZero() {

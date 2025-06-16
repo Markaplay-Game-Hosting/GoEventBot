@@ -6,6 +6,7 @@ import (
 	duration "github.com/channelmeter/iso8601duration"
 	"github.com/google/uuid"
 	"net/http"
+	"time"
 )
 
 func (app *application) createEventHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +82,10 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		for _, u := range upcoming.All() {
+		now := time.Now()
+		firstDayMonth := now.AddDate(0, 0, -now.Day()+1)
+		lastDayMonth := now.AddDate(0, 1, -now.Day())
+		for _, u := range upcoming.Between(firstDayMonth, lastDayMonth, true) {
 			perEventDuration, err := duration.FromString(event.Duration)
 			if err != nil {
 				app.logger.Error("Unable to parse duration", err.Error())
