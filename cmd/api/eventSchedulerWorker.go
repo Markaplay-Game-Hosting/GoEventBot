@@ -40,7 +40,12 @@ func (e *eventScheduler) StartScheduleEvent(app *application) {
 			event.Execute(e.Event)
 		})
 		// Update e.Time to the next occurrence based on the recurrence rule
-		nextTime := ParseRRule(e.Event.RRule).After(e.Time, false)
+		nextRule, err := ParseRRule(e.Event.RRule)
+		if err != nil {
+			app.logger.Error("Unable to parse RRule", "error", err)
+			continue
+		}
+		nextTime := nextRule.After(e.Time, false)
 		if nextTime.IsZero() {
 			break // Exit loop if no further occurrences
 		}

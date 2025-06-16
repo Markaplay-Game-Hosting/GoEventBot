@@ -22,7 +22,6 @@ type Event struct {
 }
 
 type EventInstance struct {
-	ID          uuid.UUID `json:"id"`
 	EventID     uuid.UUID `json:"event_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
@@ -64,8 +63,8 @@ func (e EventModel) Insert(event *Event) error {
 	return nil
 }
 
-func (e EventModel) Get(ID string) (Event, error) {
-	query := `SELECT id, title, description, is_active, duration, rrule, is_active, webhook_id, created_date, updated_date FROM events WHERE id = $1`
+func (e EventModel) Get(ID uuid.UUID) (Event, error) {
+	query := `SELECT id, title, description, duration, rrule, is_active, webhook_id, created_date, updated_date FROM events WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -75,7 +74,6 @@ func (e EventModel) Get(ID string) (Event, error) {
 		&event.ID,
 		&event.Title,
 		&event.Description,
-		&event.IsActive,
 		&event.Duration,
 		&event.RRule,
 		&event.IsActive,
