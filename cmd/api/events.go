@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
+	duration "github.com/channelmeter/iso8601duration"
 	"github.com/google/uuid"
 	"net/http"
 )
@@ -46,8 +47,8 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventID := r.URL.Query().Get("id")
-	if eventID == "" {
+	eventID, err := app.readIDParam(r)
+	if err != nil {
 		http.Error(w, "Event ID is required", http.StatusBadRequest)
 		return
 	}
@@ -72,8 +73,34 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	var eventInstances []data.EventInstance
+	for _, event := range events {
+		upcoming, err := ParseRRule(event.RRule)
+		if err != nil {
+			app.logger.Error("Unable to parse RRule", err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		for _, u := range upcoming.All() {
+			perEventDuration, err := duration.FromString(event.Duration)
+			if err != nil {
+				app.logger.Error("Unable to parse duration", err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			var instance data.EventInstance
+			instance.EventID = event.ID
+			instance.Title = event.Title
+			instance.Description = event.Description
+			instance.Duration = event.Duration
+			instance.StartDate = u
+			instance.EndDate = u.Add(perEventDuration.ToDuration())
 
-	if err := app.writeJSON(w, http.StatusOK, envelope{"events": events}, nil); err != nil {
+			eventInstances = append(eventInstances, instance)
+		}
+	}
+
+	if err := app.writeJSON(w, http.StatusOK, envelope{"events": eventInstances}, nil); err != nil {
 		app.logger.Error("Unable to write JSON", err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -97,8 +124,8 @@ func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventID := r.URL.Query().Get("id")
-	if eventID == "" {
+	eventID, err := app.readIDParam(r)
+	if err != nil {
 		http.Error(w, "Event ID is required", http.StatusBadRequest)
 		return
 	}
