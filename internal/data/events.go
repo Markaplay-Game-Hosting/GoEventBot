@@ -64,7 +64,7 @@ func (e EventModel) Insert(event *Event) error {
 }
 
 func (e EventModel) Get(ID uuid.UUID) (Event, error) {
-	query := `SELECT id, title, description, is_active, duration, rrule, is_active, webhook_id, created_date, updated_date FROM events WHERE id = $1`
+	query := `SELECT id, title, description, duration, rrule, is_active, webhook_id, created_date, updated_date FROM events WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -74,7 +74,6 @@ func (e EventModel) Get(ID uuid.UUID) (Event, error) {
 		&event.ID,
 		&event.Title,
 		&event.Description,
-		&event.IsActive,
 		&event.Duration,
 		&event.RRule,
 		&event.IsActive,

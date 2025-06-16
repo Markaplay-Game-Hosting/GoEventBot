@@ -50,7 +50,7 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
-		http.Error(w, "Event ID is required", http.StatusBadRequest)
+		http.Error(w, "Invalid event ID format", http.StatusBadRequest)
 		return
 	}
 
