@@ -113,7 +113,7 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
-		http.Error(w, "Event ID is required", http.StatusBadRequest)
+		http.Error(w, "Invalid Event ID format", http.StatusBadRequest)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
-		http.Error(w, "Event ID is required", http.StatusBadRequest)
+		http.Error(w, "Invalid Event ID format", http.StatusBadRequest)
 		return
 	}
 
