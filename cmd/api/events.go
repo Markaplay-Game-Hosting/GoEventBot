@@ -111,13 +111,13 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventID := r.URL.Query().Get("id")
-	if eventID == "" {
-		http.Error(w, "Event ID is required", http.StatusBadRequest)
+	eventID, err := app.readIDParam(r)
+	if err != nil {
+		http.Error(w, "Invalid Event ID format", http.StatusBadRequest)
 		return
 	}
 
-	err := app.models.Events.Delete(eventID)
+	err = app.models.Events.Delete(eventID)
 	if err != nil {
 		app.logger.Error("Unable to delete event", err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -130,7 +130,7 @@ func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
-		http.Error(w, "Event ID is required", http.StatusBadRequest)
+		http.Error(w, "Invalid Event ID format", http.StatusBadRequest)
 		return
 	}
 
