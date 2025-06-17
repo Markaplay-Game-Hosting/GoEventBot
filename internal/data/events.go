@@ -101,7 +101,13 @@ func (e EventModel) GetAll() ([]Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func(rows *sql.Rows) {
+		err = rows.Close()
+	}(rows)
+	if err != nil {
+		return nil, err
+	}
 
 	for rows.Next() {
 		var event Event
@@ -148,7 +154,7 @@ func (e EventModel) Update(event *Event) error {
 	return nil
 }
 
-func (e EventModel) Delete(ID string) error {
+func (e EventModel) Delete(ID uuid.UUID) error {
 	query := `DELETE FROM events WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -175,7 +181,15 @@ func (e EventModel) GetActiveEvents() ([]Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func(rows *sql.Rows) {
+		err = rows.Close()
+	}(rows)
+
+	if err != nil {
+		return nil, err
+	}
+
 	var events []Event
 	for rows.Next() {
 		var event Event
