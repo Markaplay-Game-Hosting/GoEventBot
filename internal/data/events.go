@@ -129,9 +129,9 @@ func (e EventModel) GetAll() ([]Event, error) {
 }
 
 func (e EventModel) Update(event *Event) error {
-	query := `UPDATE events SET title = $1, description = $2, is_active = $5, duration = $6, rrule = $7, updated_date = NOW() WHERE id = $6 RETURNING updated_date`
+	query := `UPDATE events SET title = $1, description = $2, is_active = $3, duration = $4, rrule = $5, updated_date = NOW() WHERE id = $6 RETURNING updated_date`
 
-	args := []any{event.Title, event.Description, event.IsActive, event.ID}
+	args := []any{event.Title, event.Description, event.IsActive, event.Duration, event.RRule, event.ID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
