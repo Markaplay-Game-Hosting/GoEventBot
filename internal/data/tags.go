@@ -13,8 +13,8 @@ type Tag struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	CreatedDate string    `json:"created_date"`
-	UpdatedDate string    `json:"updated_date"`
+	CreatedDate time.Time `json:"created_date"`
+	UpdatedDate time.Time `json:"updated_date"`
 }
 
 func ValidateTag(v *validator.Validator, tag *Tag) {
