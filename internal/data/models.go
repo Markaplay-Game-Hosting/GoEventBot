@@ -18,6 +18,7 @@ type Models struct {
 	Webhooks    WebhookModel
 	Jobs        JobModel
 	OAuth       OAuthModel
+	Tags        TagModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -29,5 +30,6 @@ func NewModels(db *sql.DB) Models {
 		Webhooks:    WebhookModel{DB: db},
 		Jobs:        JobModel{DB: db},
 		OAuth:       OAuthModel{},
+		Tags:        TagModel{DB: db},
 	}
 }
