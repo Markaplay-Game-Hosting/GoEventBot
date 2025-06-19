@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
 	"time"
 )
@@ -12,6 +13,14 @@ type Webhook struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 	URL  string    `json:"url"`
+}
+
+func ValidateWebHook(v *validator.Validator, webhook *Webhook) {
+	v.Check(webhook.Name != "", "name", "must be provided")
+	v.Check(len(webhook.Name) <= 100, "name", "must not be more than 100 characters long")
+	v.Check(webhook.URL != "", "url", "must be provided")
+	v.Check(len(webhook.URL) <= 150, "url", "must not be more than 255 characters long")
+	v.Check(validator.Matches(webhook.URL, validator.UrlWebhookRX), "url", "must be a valid Discord webhook URL")
 }
 
 type WebhookModel struct {
