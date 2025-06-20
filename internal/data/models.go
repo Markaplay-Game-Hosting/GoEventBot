@@ -15,7 +15,6 @@ type Models struct {
 	Tokens      TokenModel
 	Users       UserModel
 	Events      EventModel
-	Webhooks    WebhookModel
 	Jobs        JobModel
 	OAuth       OAuthModel
 	Tags        TagModel
@@ -27,7 +26,6 @@ func NewModels(db *sql.DB) Models {
 		Tokens:      TokenModel{DB: db},
 		Users:       UserModel{DB: db},
 		Events:      EventModel{DB: db},
-		Webhooks:    WebhookModel{DB: db},
 		Jobs:        JobModel{DB: db},
 		OAuth:       OAuthModel{},
 		Tags:        TagModel{DB: db},
