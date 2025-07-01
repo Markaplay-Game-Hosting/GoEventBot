@@ -3,16 +3,23 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/api/models"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"net/http"
 )
 
+// createTagHandler
+// @Summary      Create Tag
+// @Description  Create a new tag
+// @Tags         Tags
+// @param  tag body models.CreateTag true "required body for creating a new tag"
+// @Produce      json
+// @Success      201 {object} data.Tag "tag information"
+// @Router       /tags [post]
+// @Security ApiKeyAuth
 func (app *application) createTagHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
+	var input models.CreateTag
 
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -45,6 +52,14 @@ func (app *application) createTagHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// getTagHandler
+// @Summary      Get Tag
+// @Description  Get tag
+// @Tags         Tags
+// @param  id path string true "id of the tag"
+// @Produce      json
+// @Success      200 {object} data.Tag "tag information"
+// @Router       /tags/{id} [get]
 func (app *application) getTagHandler(w http.ResponseWriter, r *http.Request) {
 	tagID, err := app.readIDParam(r)
 	if err != nil {
@@ -69,6 +84,16 @@ func (app *application) getTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateTagHandler
+// @Summary      Update Tag
+// @Description  Update tag
+// @Tags         Tags
+// @param  id path string true "id of the tag"
+// @param tag body  models.UpdateTagRequest true "body to update the tag"
+// @Produce      json
+// @Success      200 {object} data.Tag "tag information"
+// @Router       /tags/{id} [put]
+// @Security ApiKeyAuth
 func (app *application) updateTagHandler(w http.ResponseWriter, r *http.Request) {
 	tagID, err := app.readIDParam(r)
 	if err != nil {
@@ -76,10 +101,7 @@ func (app *application) updateTagHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var input struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
+	var input models.UpdateTagRequest
 
 	err = app.readJSON(w, r, &input)
 	if err != nil {
@@ -124,6 +146,15 @@ func (app *application) updateTagHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// deleteTagHandler
+// @Summary      Delete Tag
+// @Description  Delete tag
+// @Tags         Tags
+// @param  id path string true "id of the tag"
+// @Produce      json
+// @Success      204
+// @Router       /tags/{id} [delete]
+// @Security ApiKeyAuth
 func (app *application) deleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	tagID, err := app.readIDParam(r)
 	if err != nil {
@@ -148,6 +179,13 @@ func (app *application) deleteTagHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// listTagsHandler
+// @Summary      List Tags
+// @Description  List all tags
+// @Tags         Tags
+// @Produce      json
+// @Success      200 {array} data.Tag "tag list"
+// @Router       /tags [get]
 func (app *application) listTagsHandler(w http.ResponseWriter, r *http.Request) {
 	tags, err := app.models.Tags.GetAll()
 	if err != nil {

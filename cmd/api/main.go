@@ -3,52 +3,36 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"expvar"
 	"flag"
 	"fmt"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/vcs"
-	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/google/uuid"
-	"github.com/spf13/viper"
-	"golang.org/x/oauth2"
 	"log"
 	"log/slog"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/config"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/vcs"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/source/github"
+	"github.com/google/uuid"
+	"golang.org/x/oauth2"
 )
 
 var (
 	version = vcs.Version()
 )
 
-type config struct {
-	Port int    `yaml:"port"`
-	Env  string `yaml:"env"`
-	DB   struct {
-		DSN          string `yaml:"dsn"`
-		MaxOpenConns int    `yaml:"maxOpenConns"`
-		MaxIdleConns int    `yaml:"maxIdleConns"`
-		MaxIdleTime  string `yaml:"maxIdleTime"`
-	} `yaml:"db"`
-	Limiter struct {
-		Enabled bool    `yaml:"enabled"`
-		RPS     float64 `yaml:"rps"`
-		Burst   int     `yaml:"burst"`
-	} `yaml:"limiter"`
-	Cors struct {
-		TrustedOrigins []string `yaml:"trusted_origins"`
-	} `yaml:"cors"`
-	Discord struct {
-		ClientID     string `yaml:"client_id"`
-		ClientSecret string `yaml:"client_secret"`
-	}
-}
-
 type application struct {
-	config                 config
+	config                 config.Config
 	logger                 *slog.Logger
 	models                 data.Models
 	scheduledEventsTracker map[uuid.UUID]data.Event
@@ -57,32 +41,18 @@ type application struct {
 	wg                     sync.WaitGroup
 }
 
+// @title           Go Event Bot API
+// @version         1.0
+// @description     Go Event Bot API for managing events and scheduling.
+// @BasePath  /v1/
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
-	var cfg config
+	cfg, err := config.Load()
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-
-	viper.SetDefault("Port", 8080)
-	viper.SetDefault("Env", "development")
-	viper.SetDefault("DB.DSN", "host=localhost port=5432 user=postgres password=postgres dbname=event sslmode=disable")
-	viper.SetDefault("DB.MaxOpenConns", 25)
-	viper.SetDefault("DB.MaxIdleConns", 25)
-	viper.SetDefault("DB.MaxIdleTime", "15m")
-	viper.SetDefault("Limiter.Enabled", true)
-	viper.SetDefault("Limiter.RPS", 2)
-	viper.SetDefault("Limiter.Burst", 4)
-	viper.SetDefault("Cors.TrustedOrigins", []string{"http://localhost:3000"})
-	viper.SetDefault("Discord.ClientID", "")
-	viper.SetDefault("Discord.ClientSecret", "")
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Panic("Error reading config file: ", err)
-	}
-
-	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Panic("Unable to decode into struct: ", err)
+	if err != nil {
+		log.Panic("Error loading configuration: ", err)
 	}
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
@@ -96,15 +66,31 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	db, err := openDB(cfg)
+	db, err := openDB(*cfg)
 	if err != nil {
 		logger.Error("Error while opening database connection: ", err)
+		os.Exit(1)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err = db.Close()
+	}(db)
+
+	if err != nil {
+		logger.Error("Error closing database connection: ", err)
+		os.Exit(1)
+	}
 
 	logger.Info("database connection pool established")
 
-	oauth2Config, provider, err := setupOauth(cfg)
+	logger.Info("running database migrations")
+	err = migrateDB(db, logger)
+	if err != nil {
+		logger.Error("Error running database migrations: ", err)
+		os.Exit(1)
+	}
+	logger.Info("database migrations done")
+
+	oauth2Config, provider, err := setupOauth(*cfg)
 	if err != nil {
 		logger.Error("Error setting up OAuth2 configuration: ", err)
 		os.Exit(1)
@@ -123,22 +109,21 @@ func main() {
 	expvar.Publish("timestamp", expvar.Func(func() any {
 		return time.Now().Unix()
 	}))
-
 	app := &application{
-		config:       cfg,
-		logger:       logger,
-		models:       data.NewModels(db),
-		oauth2Config: oauth2Config,
-		provider:     provider,
+		config:                 *cfg,
+		logger:                 logger,
+		models:                 data.NewModels(db),
+		scheduledEventsTracker: make(map[uuid.UUID]data.Event),
+		oauth2Config:           oauth2Config,
+		provider:               provider,
 	}
-
 	err = app.serve()
 	if err != nil {
 		logger.Error("Error when running the app: ", "error", err)
 	}
 }
 
-func openDB(cfg config) (*sql.DB, error) {
+func openDB(cfg config.Config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", cfg.DB.DSN)
 	if err != nil {
 		return nil, err
@@ -165,7 +150,25 @@ func openDB(cfg config) (*sql.DB, error) {
 	return db, nil
 }
 
-func setupOauth(cfg config) (oauth2.Config, *oidc.Provider, error) {
+func migrateDB(db *sql.DB, logger *slog.Logger) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	logger.Info("Setting up database instance for migration")
+	if err != nil {
+		return fmt.Errorf("error setting up instance for migration: %w", err)
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"goeventbotdb", driver)
+	if err != nil {
+		return fmt.Errorf("error creating new migration instance: %w", err)
+	}
+	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("error running migrations: %w", err)
+	}
+	return nil
+}
+
+func setupOauth(cfg config.Config) (oauth2.Config, *oidc.Provider, error) {
 	ctx := context.Background()
 	var oauth2Config oauth2.Config
 	var provider *oidc.Provider

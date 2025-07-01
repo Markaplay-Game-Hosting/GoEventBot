@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS events(
     end_date timestamp(0) with time zone NULL,
     duration text NOT NULL,
     rrule text NULL,
-    webhook_id uuid NULL,
+    channel_id int NOT NULL,
+    guild_id int NOT NULL,
     is_active bool NOT NULL DEFAULT true,
     created_date timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_date timestamp(0) with time zone NOT NULL DEFAULT NOW()

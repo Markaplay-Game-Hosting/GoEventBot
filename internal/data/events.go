@@ -9,25 +9,47 @@ import (
 	"time"
 )
 
+// Event
+// @Description Event Response object
 type Event struct {
-	ID          uuid.UUID `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Duration    string    `json:"duration"`
-	RRule       string    `json:"rrule,omitempty"`
-	IsActive    bool      `json:"is_active"`
+	// ID of the event
+	ID uuid.UUID `json:"id"`
+	// Title of the event
+	Title string `json:"title"`
+	// Description/Content of the event
+	Description string `json:"description"`
+	// Duration of the event following the ISO 8601 standard
+	Duration string `json:"duration" example:"PT30M"`
+	// Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
+	RRule string `json:"rrule,omitempty" example:"FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z"`
+	// Discord ID of the channel the bot will post the event
+	ChannelID int `json:"channel_id,omitempty"`
+	// Discord Guild ID/server the bot will publish on
+	GuildID int `json:"guild_id,omitempty"`
+	// Tell if the event is currently active
+	IsActive bool `json:"is_active"`
+	// Creation date of the event
 	CreatedDate time.Time `json:"created_date"`
+	// Last modification of the event
 	UpdatedDate time.Time `json:"updated_date"`
-}
+} // @name Event.Get
 
+// EventInstance
+// @Description Event Instance Response object
 type EventInstance struct {
-	EventID     uuid.UUID `json:"event_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Duration    string    `json:"duration"`
-	StartDate   time.Time `json:"start_date"`
-	EndDate     time.Time `json:"end_date"`
-}
+	// ID of the event
+	EventID uuid.UUID `json:"event_id"`
+	// Title of the event
+	Title string `json:"title"`
+	// Description of the event
+	Description string `json:"description"`
+	// Duration of the event following the ISO 8601 standard
+	Duration string `json:"duration" example:"PT30M"`
+	// Start date of the event
+	StartDate time.Time `json:"start_date"`
+	// End date of the event
+	EndDate time.Time `json:"end_date"`
+} // @name Event.Instance.Get
 
 func ValidateEvent(v *validator.Validator, event *Event) {
 	v.Check(event.Title != "", "title", "must be provided")

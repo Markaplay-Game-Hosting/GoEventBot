@@ -38,6 +38,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/tags/:id", app.requireAuthenticatedUser(app.updateTagHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/tags/:id", app.requireAuthenticatedUser(app.deleteTagHandler))
 
+	router.ServeFiles("/docs/*filepath", http.Dir("./docs"))
+	router.HandlerFunc(http.MethodGet, "/reference", app.referenceHandler)
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
 	return app.metrics(app.setTracingId(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))))

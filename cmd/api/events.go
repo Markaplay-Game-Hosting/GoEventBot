@@ -1,23 +1,26 @@
 package main
 
 import (
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/api/models"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	duration "github.com/channelmeter/iso8601duration"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
 )
 
+// createEventHandler
+// @Summary      Create an event
+// @Description  Create a new event
+// @Tags         Events
+// @Produce      json
+// @Param        event 	  body    models.CreateEventRequest   true  "create an event"
+// @Success      201
+// @Router       /events [post]
+// @Security ApiKeyAuth
 func (app *application) createEventHandler(w http.ResponseWriter, r *http.Request) {
 
-	var input struct {
-		Title       string    `json:"title"`
-		Description string    `json:"description"`
-		Duration    string    `json:"duration"`
-		RRule       string    `json:"rrule"`
-		WebhookId   uuid.UUID `json:"webhook_id"`
-	}
+	var input models.CreateEventRequest
 
 	if err := app.readJSON(w, r, &input); err != nil {
 		app.logger.Error("Unable to read JSON", err.Error())
@@ -31,7 +34,8 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 		Duration:    input.Duration,
 		RRule:       input.RRule,
 		IsActive:    true,
-		WebhookID:   input.WebhookId,
+		ChannelID:   input.ChannelID,
+		GuildID:     input.GuildID,
 	}
 
 	v := validator.New()
@@ -47,6 +51,14 @@ func (app *application) createEventHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// getEventHandler
+// @Summary      Get Event Information
+// @Description  Get event information
+// @Tags         Events
+// @Produce      json
+// @param id path string true "event id"
+// @Success      200 {object} data.Event
+// @Router       /events/{id} [get]
 func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
@@ -67,6 +79,13 @@ func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// getAllEventsHandler
+// @Summary      List Events
+// @Description  List all upcoming events
+// @Tags         Events
+// @Produce      json
+// @Success      200 {array} data.EventInstance
+// @Router       /events [get]
 func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.models.Events.GetAll()
 	if err != nil {
@@ -110,6 +129,15 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// deleteEventHandler
+// @Summary      Delete Event
+// @Description  Delete an event
+// @Tags         Events
+// @param	id path string true "event id"
+// @Produce      json
+// @Success      204
+// @Router       /events/{id} [delete]
+// @Security ApiKeyAuth
 func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
@@ -127,6 +155,16 @@ func (app *application) deleteEventHandler(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// updateEventHandler
+// @Summary      Update Event
+// @Description  Update an event
+// @Tags         Events
+// @param	id path string true "event id"
+// @param event body models.UpdateEventRequest  true  "update an event"
+// @Produce      json
+// @Success      200
+// @Router       /events/{id} [put]
+// @Security ApiKeyAuth
 func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventID, err := app.readIDParam(r)
 	if err != nil {
@@ -134,14 +172,7 @@ func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var input struct {
-		Title       string    `json:"title,omitempty"`
-		Description string    `json:"description,omitempty"`
-		Duration    string    `json:"duration,omitempty"`
-		RRule       string    `json:"rrule,omitempty"`
-		IsActive    bool      `json:"is_active,omitempty"`
-		WebhookId   uuid.UUID `json:"webhook_id,omitempty"`
-	}
+	var input models.UpdateEventRequest
 
 	if err := app.readJSON(w, r, &input); err != nil {
 		app.logger.Error("Unable to read JSON", err.Error())
@@ -169,27 +200,16 @@ func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 	if input.IsActive != event.IsActive {
 		event.IsActive = input.IsActive
 	}
-	if input.WebhookId != uuid.Nil {
-		event.WebhookID = input.WebhookId
+	if input.ChannelID != 0 {
+		event.ChannelID = input.ChannelID
+	}
+	if input.GuildID != 0 {
+		event.GuildID = input.GuildID
 	}
 
 	if err := app.models.Events.Update(&event); err != nil {
 		app.logger.Error("Unable to update event", err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}
-}
-
-func (app *application) getActiveEventsHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := app.models.Events.GetActiveEvents()
-	if err != nil {
-		app.logger.Error("Unable to get active events", err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := app.writeJSON(w, http.StatusOK, envelope{"active_events": events}, nil); err != nil {
-		app.logger.Error("Unable to write JSON", err.Error())
-		app.serverErrorResponse(w, r, err)
 	}
 }

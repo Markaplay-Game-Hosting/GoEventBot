@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/bot"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +48,10 @@ func (app *application) serve() error {
 		app.wg.Wait()
 		shutdownError <- nil
 	}()
+
+	go func(cfg config.Config) {
+		bot.Run(cfg)
+	}(app.config)
 
 	app.logger.Info("starting server", "details", map[string]string{
 		"addr": srv.Addr,

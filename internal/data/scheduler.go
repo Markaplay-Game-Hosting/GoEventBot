@@ -12,3 +12,11 @@ type Scheduler struct {
 	events map[int]Event
 	db     *sql.DB
 }
+
+type SchedulerModel interface {
+	Execute(event Event)
+}
+
+func Execute(event Event) {
+
+}

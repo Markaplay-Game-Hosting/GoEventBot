@@ -1,0 +1,436 @@
+basePath: /v1/
+definitions:
+  Event.Create.Request:
+    description: Information required to update a new event
+    properties:
+      channel_id:
+        description: Discord ID of the channel the bot will post the event
+        type: integer
+      description:
+        description: Description/Content of the event
+        type: string
+      duration:
+        description: Duration of the each event following ISO 8601 standard
+        example: PT30M
+        type: string
+      guild_id:
+        description: Discord Guild ID/server the bot will publish on
+        type: integer
+      is_active:
+        description: If the event is active of not
+        type: boolean
+      rrule:
+        description: Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
+        example: FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z
+        type: string
+      title:
+        description: Title of the  event
+        type: string
+    type: object
+  Event.Get:
+    description: Event Response object
+    properties:
+      channel_id:
+        description: Discord ID of the channel the bot will post the event
+        type: integer
+      created_date:
+        description: Creation date of the event
+        type: string
+      description:
+        description: Description/Content of the event
+        type: string
+      duration:
+        description: Duration of the event following the ISO 8601 standard
+        example: PT30M
+        type: string
+      guild_id:
+        description: Discord Guild ID/server the bot will publish on
+        type: integer
+      id:
+        description: ID of the event
+        type: string
+      is_active:
+        description: Tell if the event is currently active
+        type: boolean
+      rrule:
+        description: Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
+        example: FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z
+        type: string
+      title:
+        description: Title of the event
+        type: string
+      updated_date:
+        description: Last modification of the event
+        type: string
+    type: object
+  Event.Instance.Get:
+    description: Event Instance Response object
+    properties:
+      description:
+        description: Description of the event
+        type: string
+      duration:
+        description: Duration of the event following the ISO 8601 standard
+        example: PT30M
+        type: string
+      end_date:
+        description: End date of the event
+        type: string
+      event_id:
+        description: ID of the event
+        type: string
+      start_date:
+        description: Start date of the event
+        type: string
+      title:
+        description: Title of the event
+        type: string
+    type: object
+  Tag.Create.Request:
+    description: Create Tag Model
+    properties:
+      description:
+        description: Short description of the tag
+        example: regroup events for warriors
+        type: string
+      name:
+        description: Name of the tag
+        example: Warriors
+        type: string
+    type: object
+  Tag.Get:
+    description: Tag information
+    properties:
+      created_date:
+        description: Creation date of the tag
+        type: string
+      description:
+        description: Description of the tag
+        type: string
+      id:
+        description: ID of the tag
+        type: string
+      name:
+        description: Name of the tag
+        type: string
+      updated_date:
+        description: Last modification on the tag
+        type: string
+    type: object
+  Tag.Update.Request:
+    description: Request body to update the tag
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  User.Activation.Request:
+    description: Activate token request
+    properties:
+      token:
+        description: Token
+        type: string
+    type: object
+  User.Register.Request:
+    description: User Registration Body
+    properties:
+      email:
+        description: email of the user
+        type: string
+      name:
+        description: username of the user
+        type: string
+      password:
+        description: password
+        type: string
+    type: object
+  User.UpdatePassword.Request:
+    description: User Request to update password
+    properties:
+      password:
+        description: User password
+        type: string
+      token:
+        description: Authorization token
+        type: string
+    type: object
+  data.User:
+    properties:
+      activated:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Go Event Bot API for managing events and scheduling.
+  title: Go Event Bot API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      description: List all upcoming events
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Event.Instance.Get'
+            type: array
+      summary: List Events
+      tags:
+      - Events
+    post:
+      description: Create a new event
+      parameters:
+      - description: create an event
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/Event.Create.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+      security:
+      - ApiKeyAuth: []
+      summary: Create an event
+      tags:
+      - Events
+  /events/{id}:
+    delete:
+      description: Delete an event
+      parameters:
+      - description: event id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Event
+      tags:
+      - Events
+    get:
+      description: Get event information
+      parameters:
+      - description: event id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Event.Get'
+      summary: Get Event Information
+      tags:
+      - Events
+    put:
+      description: Update an event
+      parameters:
+      - description: event id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: update an event
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/Event.Create.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update Event
+      tags:
+      - Events
+  /tags:
+    get:
+      description: List all tags
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tag list
+          schema:
+            items:
+              $ref: '#/definitions/Tag.Get'
+            type: array
+      summary: List Tags
+      tags:
+      - Tags
+    post:
+      description: Create a new tag
+      parameters:
+      - description: required body for creating a new tag
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/Tag.Create.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: tag information
+          schema:
+            $ref: '#/definitions/Tag.Get'
+      security:
+      - ApiKeyAuth: []
+      summary: Create Tag
+      tags:
+      - Tags
+  /tags/{id}:
+    delete:
+      description: Delete tag
+      parameters:
+      - description: id of the tag
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Tag
+      tags:
+      - Tags
+    get:
+      description: Get tag
+      parameters:
+      - description: id of the tag
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tag information
+          schema:
+            $ref: '#/definitions/Tag.Get'
+      summary: Get Tag
+      tags:
+      - Tags
+    put:
+      description: Update tag
+      parameters:
+      - description: id of the tag
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: body to update the tag
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/Tag.Update.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tag information
+          schema:
+            $ref: '#/definitions/Tag.Get'
+      security:
+      - ApiKeyAuth: []
+      summary: Update Tag
+      tags:
+      - Tags
+  /users:
+    post:
+      description: user signup
+      parameters:
+      - description: body to register
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/User.Register.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user information
+          schema:
+            $ref: '#/definitions/data.User'
+      summary: Register a new user account
+      tags:
+      - Users
+  /users/activated:
+    post:
+      description: Activate a new user account
+      parameters:
+      - description: activation token
+        in: body
+        name: activation
+        required: true
+        schema:
+          $ref: '#/definitions/User.Activation.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user information
+          schema:
+            $ref: '#/definitions/data.User'
+      summary: Activate a new user account
+      tags:
+      - Users
+  /users/password:
+    post:
+      description: Change current user password
+      parameters:
+      - description: body to register
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/User.UpdatePassword.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tag information
+          schema:
+            $ref: '#/definitions/data.User'
+      summary: Update Password
+      tags:
+      - Users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

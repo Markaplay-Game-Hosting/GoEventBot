@@ -1,6 +1,9 @@
 package main
 
-import "github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+import (
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
+	"github.com/google/uuid"
+)
 
 type Scheduler interface {
 	Execute(event data.Event)
@@ -8,7 +11,7 @@ type Scheduler interface {
 
 func (app *application) Execute(event data.Event) {
 	msg := FormatMessage(event)
-	err := app.SendMessage(msg, event.Title, event.WebhookID)
+	err := app.SendMessage(msg, event.Title, uuid.Nil)
 	if err != nil {
 		app.logger.Error("Unable to send message", err.Error())
 	} else {

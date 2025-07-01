@@ -9,13 +9,20 @@ import (
 	"time"
 )
 
+// Tag
+// @Description Tag information
 type Tag struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	// ID of the tag
+	ID uuid.UUID `json:"id"`
+	// Name of the tag
+	Name string `json:"name"`
+	// Description of the tag
+	Description string `json:"description"`
+	// Creation date of the tag
 	CreatedDate time.Time `json:"created_date"`
+	// Last modification on the tag
 	UpdatedDate time.Time `json:"updated_date"`
-}
+} // @name Tag.Get
 
 func ValidateTag(v *validator.Validator, tag *Tag) {
 	v.Check(tag.Name != "", "name", "must be provided")

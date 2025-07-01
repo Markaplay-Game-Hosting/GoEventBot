@@ -35,12 +35,8 @@ func (app *application) SendMessage(embeds []Embed, title string, webhookId uuid
 		app.logger.Error("Unable to format body to send the message", err.Error())
 		return err
 	}
-	webhook, err := app.models.Webhooks.GetByID(webhookId)
-	if err != nil {
-		app.logger.Error("Unable to get webhook by ID", "Error", err.Error())
-		return fmt.Errorf("unable to get webhook by ID: %w", err)
-	}
-	resp, err := http.Post(webhook.URL, "application/json", bytes.NewBuffer(bodyJson))
+
+	resp, err := http.Post("test", "application/json", bytes.NewBuffer(bodyJson))
 	if err != nil {
 		app.logger.Error("Unable to send message", err.Error())
 		return err
