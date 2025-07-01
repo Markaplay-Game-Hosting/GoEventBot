@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
-	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"time"
@@ -23,7 +22,7 @@ type Embed struct {
 	TimeStamps  string `json:"timestamp"`
 }
 
-func (app *application) SendMessage(embeds []Embed, title string, webhookId uuid.UUID) error {
+func (app *application) SendMessage(embeds []Embed, title string) error {
 
 	body := DiscordBody{
 		Content: title,

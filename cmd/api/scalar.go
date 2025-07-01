@@ -27,5 +27,8 @@ func (app *application) referenceHandler(w http.ResponseWriter, r *http.Request)
 		fmt.Printf("%v", err)
 	}
 
-	fmt.Fprintln(w, htmlContent)
+	_, err = fmt.Fprintln(w, htmlContent)
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
 }
