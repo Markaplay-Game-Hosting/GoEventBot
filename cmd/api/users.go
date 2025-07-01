@@ -2,17 +2,22 @@ package main
 
 import (
 	"errors"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/api/models"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"net/http"
 )
 
+// registerUserHandler
+// @Summary      Register a new user account
+// @Description  user signup
+// @Tags         Users
+// @param tag body  models.UserRegisterRequest true "body to register"
+// @Produce      json
+// @Success      200 {object} data.User "user information"
+// @Router       /users [post]
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var input models.UserRegisterRequest
 
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -72,10 +77,16 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// activateUserHandler
+// @Summary      Activate a new user account
+// @Description  Activate a new user account
+// @Tags         Users
+// @param activation body  models.UserActivationRequest true "activation token"
+// @Produce      json
+// @Success      200 {object} data.User "user information"
+// @Router       /users/activated [post]
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		TokenPlaintext string `json:"token"`
-	}
+	var input models.UserActivationRequest
 
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -127,11 +138,16 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// updateUserPasswordHandler
+// @Summary      Update Password
+// @Description  Change current user password
+// @Tags         Users
+// @param tag body  models.UserUpdatePasswordRequest true "body to register"
+// @Produce      json
+// @Success      200 {object} data.User "tag information"
+// @Router       /users/password [post]
 func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Password       string `json:"password"`
-		TokenPlaintext string `json:"token"`
-	}
+	var input models.UserUpdatePasswordRequest
 
 	err := app.readJSON(w, r, &input)
 	if err != nil {

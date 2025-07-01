@@ -213,7 +213,7 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 func (app *application) setTracingId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tracingID := uuid.New().String()
-		r.Header.Add("X-Trace-ID", tracingID)
+		w.Header().Set("X-Trace-ID", tracingID)
 		next.ServeHTTP(w, r)
 
 	})
