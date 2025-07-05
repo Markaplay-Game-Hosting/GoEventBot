@@ -10,5 +10,8 @@
     <file url="file://$PROJECT_DIR$/migrations/000004_create_events_table.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/migrations/000007_create_jobs_table.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/migrations/000008_alter_events_table.up.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/migrations/000009_alter_events_discord_table.up.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/migrations/000010_create_schedule_settings_table.down.sql" dialect="PostgreSQL" />
+    <file url="PROJECT" dialect="PostgreSQL" />
   </component>
 </project>

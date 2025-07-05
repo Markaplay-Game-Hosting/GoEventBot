@@ -7,6 +7,7 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
+	_ "github.com/fsamin/go-dump"
 	"log"
 	"log/slog"
 	"os"
@@ -14,16 +15,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/eventWorker"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/bot"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/crypter"
+	"github.com/gorilla/securecookie"
+
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/config"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/vcs"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
-	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
 
@@ -32,13 +36,15 @@ var (
 )
 
 type application struct {
-	config                 config.Config
-	logger                 *slog.Logger
-	models                 data.Models
-	scheduledEventsTracker map[uuid.UUID]data.Event
-	oauth2Config           oauth2.Config
-	provider               *oidc.Provider
-	wg                     sync.WaitGroup
+	config        config.Config
+	logger        *slog.Logger
+	models        data.Models
+	oauth2Config  oauth2.Config
+	bot           *bot.Bot
+	eventWorker   *eventWorker.EventWorker
+	crypt         *crypter.Crypt
+	cookieHandler *securecookie.SecureCookie
+	wg            sync.WaitGroup
 }
 
 // @title           Go Event Bot API
@@ -65,7 +71,15 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	/*
+		dumper := dump.NewDefaultEncoder()
+		dumper.DisableTypePrefix = true
+		dumper.Separator = "_"
+		dumper.Formatters = []dump.KeyFormatterFunc{dump.WithDefaultUpperCaseFormatter()}
+		envs, _ := dumper.ToStringMap(&cfg)
 
+		logger.Info("Configuration loaded: ", "config", envs)
+	*/
 	db, err := openDB(*cfg)
 	if err != nil {
 		logger.Error("Error while opening database connection: ", err)
@@ -90,7 +104,7 @@ func main() {
 	}
 	logger.Info("database migrations done")
 
-	oauth2Config, provider, err := setupOauth(*cfg)
+	oauth2Config, err := setupOauth(*cfg)
 	if err != nil {
 		logger.Error("Error setting up OAuth2 configuration: ", err)
 		os.Exit(1)
@@ -109,13 +123,38 @@ func main() {
 	expvar.Publish("timestamp", expvar.Func(func() any {
 		return time.Now().Unix()
 	}))
+
+	crypt, err := crypter.New([]byte(cfg.Security.Secret))
+	if err != nil {
+		logger.Error("Error creating crypter: ", err)
+		os.Exit(1)
+	}
+	models := data.NewModels(db)
+	b, err := bot.New(logger, models, crypt)
+	if err != nil {
+		logger.Error("Unable to setup discord bot", "error", err)
+		os.Exit(1)
+	}
+
+	e := eventWorker.EventWorker{
+		Config: cfg,
+		Bot:    b,
+		Logger: logger,
+		Models: models,
+	}
+
 	app := &application{
-		config:                 *cfg,
-		logger:                 logger,
-		models:                 data.NewModels(db),
-		scheduledEventsTracker: make(map[uuid.UUID]data.Event),
-		oauth2Config:           oauth2Config,
-		provider:               provider,
+		config:       *cfg,
+		logger:       logger,
+		models:       models,
+		oauth2Config: oauth2Config,
+		bot:          b,
+		eventWorker:  &e,
+		crypt:        crypt,
+		cookieHandler: securecookie.New(
+			securecookie.GenerateRandomKey(64),
+			securecookie.GenerateRandomKey(32),
+		), //securecookie.New([]byte(cfg.Security.SecretKey), []byte(cfg.Security.SecretBlock)),
 	}
 	err = app.serve()
 	if err != nil {
@@ -168,23 +207,21 @@ func migrateDB(db *sql.DB, logger *slog.Logger) error {
 	return nil
 }
 
-func setupOauth(cfg config.Config) (oauth2.Config, *oidc.Provider, error) {
-	ctx := context.Background()
+func setupOauth(cfg config.Config) (oauth2.Config, error) {
 	var oauth2Config oauth2.Config
-	var provider *oidc.Provider
 	redirectUrl := fmt.Sprintf("http://localhost:%d/oauth/callback", cfg.Port)
-	provider, err := oidc.NewProvider(ctx, "https://discord.com")
-	if err != nil {
-		return oauth2Config, provider, err
+
+	endpoints := oauth2.Endpoint{
+		AuthURL:  "https://discord.com/oauth2/authorize",
+		TokenURL: "https://discord.com/api/oauth2/token",
 	}
-	endpoints := provider.Endpoint()
 	oauth2Config = oauth2.Config{
 		ClientID:     cfg.Discord.ClientID,
 		ClientSecret: cfg.Discord.ClientSecret,
 		Endpoint:     endpoints,
 		RedirectURL:  redirectUrl,
-		Scopes:       []string{"identify", "guilds.join"},
+		Scopes:       []string{"identify", "email"},
 	}
 
-	return oauth2Config, provider, nil
+	return oauth2Config, nil
 }

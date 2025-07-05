@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/bot"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,7 +19,7 @@ func (app *application) serve() error {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-
+	ctx, cancel := context.WithCancel(context.Background())
 	shutdownError := make(chan error)
 
 	go func() {
@@ -33,10 +31,10 @@ func (app *application) serve() error {
 			"signal": s.String(),
 		})
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
 
-		err := srv.Shutdown(ctx)
+		err := srv.Shutdown(shutdownCtx)
 		if err != nil {
 			shutdownError <- err
 		}
@@ -44,14 +42,23 @@ func (app *application) serve() error {
 		app.logger.Info("completing background tasks", map[string]string{
 			"addr": srv.Addr,
 		})
-
+		cancel()
 		app.wg.Wait()
 		shutdownError <- nil
 	}()
 
-	go func(cfg config.Config) {
-		bot.Run(cfg)
-	}(app.config)
+	app.wg.Add(1)
+	go func() {
+		defer app.wg.Done()
+		app.bot.Run(ctx)
+
+	}()
+
+	app.wg.Add(1)
+	go func() {
+		defer app.wg.Done()
+		app.eventWorker.Start(ctx)
+	}()
 
 	app.logger.Info("starting server", "details", map[string]string{
 		"addr": srv.Addr,

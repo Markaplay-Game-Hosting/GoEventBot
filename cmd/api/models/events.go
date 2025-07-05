@@ -12,9 +12,9 @@ type CreateEventRequest struct {
 	// Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
 	RRule string `json:"rrule" example:"FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z"`
 	// Discord ID of the channel the bot will post the event
-	ChannelID int `json:"channel_id,omitempty"`
+	ChannelID string `json:"channel_id,omitempty"`
 	// Discord Guild ID/server the bot will publish on
-	GuildID int `json:"guild_id,omitempty"`
+	GuildID string `json:"guild_id,omitempty"`
 } // @name Event.Create.Request
 
 // UpdateEventRequest
@@ -29,9 +29,9 @@ type UpdateEventRequest struct {
 	// Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
 	RRule string `json:"rrule,omitempty" example:"FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z"`
 	// Discord ID of the channel the bot will post the event
-	ChannelID int `json:"channel_id,omitempty"`
+	ChannelID string `json:"channel_id,omitempty"`
 	// Discord Guild ID/server the bot will publish on
-	GuildID int `json:"guild_id,omitempty"`
+	GuildID string `json:"guild_id,omitempty"`
 	// If the event is active of not
 	IsActive bool `json:"is_active,omitempty"`
 } // @name Event.Create.Request

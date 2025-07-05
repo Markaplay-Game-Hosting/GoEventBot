@@ -79,14 +79,14 @@ func (app *application) getEventHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// getAllEventsHandler
-// @Summary      List Events
+// getAllEventInstancesHandler
+// @Summary      List Upcoming Events
 // @Description  List all upcoming events
 // @Tags         Events
 // @Produce      json
 // @Success      200 {array} data.EventInstance
-// @Router       /events [get]
-func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+// @Router       /calendar [get]
+func (app *application) getAllEventInstancesHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.models.Events.GetAll()
 	if err != nil {
 		app.logger.Error("Unable to get all events", err.Error())
@@ -95,7 +95,7 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 	}
 	var eventInstances []data.EventInstance
 	for _, event := range events {
-		upcoming, err := ParseRRule(event.RRule)
+		upcoming, err := data.ParseRRule(event.RRule)
 		if err != nil {
 			app.logger.Error("Unable to parse RRule", err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -125,6 +125,27 @@ func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Reque
 
 	if err := app.writeJSON(w, http.StatusOK, envelope{"events": eventInstances}, nil); err != nil {
 		app.logger.Error("Unable to write JSON", err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// getAllEventsHandler
+// @Summary      List Events
+// @Description  List all upcoming events
+// @Tags         Events
+// @Produce      json
+// @Success      200 {array} data.EventInstance
+// @Router       /events [get]
+func (app *application) getAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := app.models.Events.GetAll()
+	if err != nil {
+		app.logger.Error("Unable to get all events", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := app.writeJSON(w, http.StatusOK, envelope{"events": events}, nil); err != nil {
+		app.logger.Error("Unable to write JSON", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -200,10 +221,10 @@ func (app *application) updateEventHandler(w http.ResponseWriter, r *http.Reques
 	if input.IsActive != event.IsActive {
 		event.IsActive = input.IsActive
 	}
-	if input.ChannelID != 0 {
+	if input.ChannelID != "" {
 		event.ChannelID = input.ChannelID
 	}
-	if input.GuildID != 0 {
+	if input.GuildID != "" {
 		event.GuildID = input.GuildID
 	}
 

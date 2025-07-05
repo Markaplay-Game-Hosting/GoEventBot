@@ -19,6 +19,8 @@ var (
 
 var AnonymousUser = &User{}
 
+// User
+// @Description User model
 type User struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -27,7 +29,7 @@ type User struct {
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
 	Version   int       `json:"-"`
-}
+} // @name User.Get
 
 func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser

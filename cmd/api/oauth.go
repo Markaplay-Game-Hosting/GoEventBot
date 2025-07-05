@@ -1,7 +1,8 @@
 package main
 
 import (
-	"golang.org/x/oauth2"
+	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -20,16 +21,38 @@ func (app *application) authenticateHandler(w http.ResponseWriter, r *http.Reque
 func (app *application) callbackHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	token, err := app.oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	userInfo, err := app.provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	app.logger.Info("User Info", "user", userInfo)
+	// Optional: validate `state` here if you're storing it
 
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		app.badRequestResponse(w, r, errors.New("missing authorization code"))
+		return
+	}
+
+	token, err := app.oauth2Config.Exchange(ctx, code)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	client := app.oauth2Config.Client(ctx, token)
+
+	resp, err := client.Get("https://discord.com/api/users/@me")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var userInfo UserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.logger.Info("Discord user authenticated", "user", userInfo)
+
+	app.setCookieHandler(userInfo, w, r)
+
+	http.Redirect(w, r, "/home", http.StatusFound)
 }

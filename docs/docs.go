@@ -15,6 +15,75 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/calendar": {
+            "get": {
+                "description": "List all upcoming events",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Events"
+                ],
+                "summary": "List Upcoming Events",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Event.Instance.Get"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/discord/{guild}/channels": {
+            "get": {
+                "description": "List Channels from a guild",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Discord"
+                ],
+                "summary": "List Channels from a guild",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Discord.Channel"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/discord/{guild}/roles": {
+            "get": {
+                "description": "List Roles from a guild",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Discord"
+                ],
+                "summary": "List Roles from a guild",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Discord.Role"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/events": {
             "get": {
                 "description": "List all upcoming events",
@@ -158,6 +227,155 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/jobs": {
+            "get": {
+                "description": "List all settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "List Settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Settings.List"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add new settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Add Setting",
+                "parameters": [
+                    {
+                        "description": "body to add a setting",
+                        "name": "setting",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Settings.Add.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/setting"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{id}": {
+            "get": {
+                "description": "get setting",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get Setting",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/setting"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update existing setting",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update Setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id of the setting to update",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "body to update a setting",
+                        "name": "setting",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Settings.Update.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/setting"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an existing setting",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Delete Setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id of the setting to delete",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "$ref": "#/definitions/setting"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{id}/skip": {
+            "patch": {
+                "description": "Skip a job that has been loaded",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Skip Job",
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -346,7 +564,7 @@ const docTemplate = `{
                     "200": {
                         "description": "user information",
                         "schema": {
-                            "$ref": "#/definitions/data.User"
+                            "$ref": "#/definitions/User.Get"
                         }
                     }
                 }
@@ -377,7 +595,7 @@ const docTemplate = `{
                     "200": {
                         "description": "user information",
                         "schema": {
-                            "$ref": "#/definitions/data.User"
+                            "$ref": "#/definitions/User.Get"
                         }
                     }
                 }
@@ -408,7 +626,7 @@ const docTemplate = `{
                     "200": {
                         "description": "tag information",
                         "schema": {
-                            "$ref": "#/definitions/data.User"
+                            "$ref": "#/definitions/User.Get"
                         }
                     }
                 }
@@ -416,13 +634,43 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "Discord.Channel": {
+            "description": "Discord Channel Model",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "Discord.Role": {
+            "description": "role model",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "id of the role",
+                    "type": "string"
+                },
+                "mentionable": {
+                    "description": "if the role is mentionable",
+                    "type": "boolean"
+                },
+                "name": {
+                    "description": "name of the role",
+                    "type": "string"
+                }
+            }
+        },
         "Event.Create.Request": {
             "description": "Information required to update a new event",
             "type": "object",
             "properties": {
                 "channel_id": {
                     "description": "Discord ID of the channel the bot will post the event",
-                    "type": "integer"
+                    "type": "string"
                 },
                 "description": {
                     "description": "Description/Content of the event",
@@ -435,7 +683,7 @@ const docTemplate = `{
                 },
                 "guild_id": {
                     "description": "Discord Guild ID/server the bot will publish on",
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_active": {
                     "description": "If the event is active of not",
@@ -458,7 +706,7 @@ const docTemplate = `{
             "properties": {
                 "channel_id": {
                     "description": "Discord ID of the channel the bot will post the event",
-                    "type": "integer"
+                    "type": "string"
                 },
                 "created_date": {
                     "description": "Creation date of the event",
@@ -475,7 +723,7 @@ const docTemplate = `{
                 },
                 "guild_id": {
                     "description": "Discord Guild ID/server the bot will publish on",
-                    "type": "integer"
+                    "type": "string"
                 },
                 "id": {
                     "description": "ID of the event",
@@ -504,6 +752,10 @@ const docTemplate = `{
             "description": "Event Instance Response object",
             "type": "object",
             "properties": {
+                "channel_id": {
+                    "description": "Discord ID of the channel the bot will post the event",
+                    "type": "string"
+                },
                 "description": {
                     "description": "Description of the event",
                     "type": "string"
@@ -527,6 +779,85 @@ const docTemplate = `{
                 },
                 "title": {
                     "description": "Title of the event",
+                    "type": "string"
+                }
+            }
+        },
+        "Jobs.Get.Response": {
+            "description": "Job model",
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "string"
+                },
+                "execution_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "Jobs.List.Response": {
+            "description": "response with a list of jobs",
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "description": "list of jobs",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Jobs.Get.Response"
+                    }
+                }
+            }
+        },
+        "Settings.Add.Request": {
+            "description": "Request body to add a setting",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_secret": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "Settings.List": {
+            "description": "List of settings",
+            "type": "object",
+            "properties": {
+                "settings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/setting"
+                    }
+                }
+            }
+        },
+        "Settings.Update.Request": {
+            "description": "Request body to update a setting",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_secret": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -595,6 +926,27 @@ const docTemplate = `{
                 }
             }
         },
+        "User.Get": {
+            "description": "User model",
+            "type": "object",
+            "properties": {
+                "activated": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "User.Register.Request": {
             "description": "User Registration Body",
             "type": "object",
@@ -627,22 +979,20 @@ const docTemplate = `{
                 }
             }
         },
-        "data.User": {
+        "setting": {
+            "description": "setting model",
             "type": "object",
             "properties": {
-                "activated": {
-                    "type": "boolean"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
+                "description": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }

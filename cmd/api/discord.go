@@ -1,72 +1,100 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
-	"io"
+	"github.com/Markaplay-Game-Hosting/GoEventBot/cmd/api/models"
+	"github.com/bwmarrin/discordgo"
 	"net/http"
-	"time"
 )
 
-type DiscordBody struct {
-	Content string  `json:"content"`
-	Embeds  []Embed `json:"embeds"`
-}
-
-type Embed struct {
-	Color       int    `json:"color"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	TimeStamps  string `json:"timestamp"`
-}
-
-func (app *application) SendMessage(embeds []Embed, title string) error {
-
-	body := DiscordBody{
-		Content: title,
-		Embeds:  embeds,
+// listRolesHandler
+// @Summary      List Roles from a guild
+// @Description  List Roles from a guild
+// @Tags         Discord
+// @Produce      json
+// @Success      200 {array} models.Role
+// @Router       /discord/{guild}/roles [get]
+func (app *application) listRolesHandler(w http.ResponseWriter, r *http.Request) {
+	guildId := app.readString(r, "id", "")
+	if guildId == "" {
+		http.Error(w, "Invalid guild ID", http.StatusBadRequest)
 	}
-	bodyJson, err := json.Marshal(body)
-	app.logger.Info("body: ", bodyJson)
+	app.logger.Info("guildId", "ID", guildId)
+	allRoles, err := app.bot.ListRoles(guildId)
 	if err != nil {
-		app.logger.Error("Unable to format body to send the message", err.Error())
-		return err
+		app.serverErrorResponse(w, r, err)
 	}
-
-	resp, err := http.Post("test", "application/json", bytes.NewBuffer(bodyJson))
-	if err != nil {
-		app.logger.Error("Unable to send message", err.Error())
-		return err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			app.logger.Error("Unable to close body")
+	var roles []models.Role
+	for _, role := range allRoles {
+		mRole := models.Role{
+			ID:          role.ID,
+			Name:        role.Name,
+			Mentionable: role.Mentionable,
 		}
-	}(resp.Body)
-
-	if resp.StatusCode != 204 {
-		app.logger.Error("Unable to send message: ", resp.Status)
-		return err
+		roles = append(roles, mRole)
 	}
-	return nil
+
+	if err := app.writeJSON(w, http.StatusOK, envelope{"roles": roles}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
-func FormatMessage(event data.Event) []Embed {
-	var embed Embed
-	var embeds []Embed
-	rrule, err := ParseRRule(event.RRule)
-	if err != nil {
-		fmt.Println("Error parsing RRule:", err)
-		return nil
+// listChannelsHandler
+// @Summary      List Channels from a guild
+// @Description  List Channels from a guild
+// @Tags         Discord
+// @Produce      json
+// @Success      200 {array} models.Channel
+// @Router       /discord/{guild}/channels [get]
+func (app *application) listChannelsHandler(w http.ResponseWriter, r *http.Request) {
+	guildId := app.readString(r, "id", "")
+	if guildId == "" {
+		http.Error(w, "Invalid guild ID", http.StatusBadRequest)
 	}
-	embed.Title = event.Title
-	embed.Description = event.Description
-	// https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
-	embed.Color = 15105570
-	embed.TimeStamps = rrule.After(time.Now(), false).Format(time.RFC3339)
-	embeds = append(embeds, embed)
-	return embeds
+	app.logger.Info("guildId", "ID", guildId)
+	allChannels, err := app.bot.ListChannels(guildId)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	var channels []models.Channel
+	for _, channel := range allChannels {
+		if channel.Type != discordgo.ChannelTypeGuildText {
+			continue
+		}
+		mChannel := models.Channel{
+			ID:   channel.ID,
+			Name: channel.Name,
+		}
+		channels = append(channels, mChannel)
+	}
+
+	if err := app.writeJSON(w, http.StatusOK, envelope{"channels": channels}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// getGuildInfo
+// @Summary      Get Guild Info
+// @Description  Show guild basic information
+// @Tags         Discord
+// @Produce      json
+// @Success      200 {array} models.Guild
+// @Router       /discord/{guild} [get]
+func (app *application) getGuildInfo(w http.ResponseWriter, r *http.Request) {
+	guildId := app.readString(r, "id", "")
+	if guildId == "" {
+		http.Error(w, "Invalid guild ID", http.StatusBadRequest)
+	}
+	app.logger.Info("guildId", "ID", guildId)
+	guildInfo, err := app.bot.GetGuildInfo(guildId)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	guild := models.GuildInfo{
+		ID:   guildId,
+		Name: guildInfo.Name,
+	}
+
+	if err := app.writeJSON(w, http.StatusOK, envelope{"guild": guild}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

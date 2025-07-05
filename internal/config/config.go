@@ -6,25 +6,31 @@ import (
 )
 
 type Config struct {
-	Port int    `yaml:"port"`
-	Env  string `yaml:"env"`
+	Port int
+	Env  string
 	DB   struct {
-		DSN          string `yaml:"dsn"`
-		MaxOpenConns int    `yaml:"maxOpenConns"`
-		MaxIdleConns int    `yaml:"maxIdleConns"`
-		MaxIdleTime  string `yaml:"maxIdleTime"`
-	} `yaml:"db"`
+		DSN          string
+		MaxOpenConns int
+		MaxIdleConns int
+		MaxIdleTime  string
+	}
 	Limiter struct {
-		Enabled bool    `yaml:"enabled"`
-		RPS     float64 `yaml:"rps"`
-		Burst   int     `yaml:"burst"`
-	} `yaml:"limiter"`
+		Enabled bool
+		RPS     float64
+		Burst   int
+	}
 	Cors struct {
-		TrustedOrigins []string `yaml:"trusted_origins"`
-	} `yaml:"cors"`
+		TrustedOrigins []string
+	}
 	Discord struct {
-		ClientID     string `yaml:"client_id"`
-		ClientSecret string `yaml:"client_secret"`
+		ClientID     string
+		ClientSecret string
+		Token        string
+	}
+	Security struct {
+		Secret      string
+		SecretKey   string
+		SecretBlock string
 	}
 }
 
@@ -47,6 +53,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("Cors.TrustedOrigins", []string{"http://localhost:3000"})
 	viper.SetDefault("Discord.ClientID", "")
 	viper.SetDefault("Discord.ClientSecret", "")
+	viper.SetDefault("Discord.Token", "")
+	viper.SetDefault("Security.Secret", "")
+	viper.SetDefault("Security.SecretBlock", "")
+	viper.SetDefault("Security.SecretKey", "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Panic("Error reading config file: ", err)

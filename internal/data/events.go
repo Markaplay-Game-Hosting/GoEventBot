@@ -6,6 +6,8 @@ import (
 	"errors"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
+	"github.com/teambition/rrule-go"
+	"strings"
 	"time"
 )
 
@@ -23,9 +25,9 @@ type Event struct {
 	// Recurrence rule following RFC 5545 https://icalendar.org/rrule-tool.html
 	RRule string `json:"rrule,omitempty" example:"FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20250731T000000Z"`
 	// Discord ID of the channel the bot will post the event
-	ChannelID int `json:"channel_id,omitempty"`
+	ChannelID string `json:"channel_id,omitempty"`
 	// Discord Guild ID/server the bot will publish on
-	GuildID int `json:"guild_id,omitempty"`
+	GuildID string `json:"guild_id,omitempty"`
 	// Tell if the event is currently active
 	IsActive bool `json:"is_active"`
 	// Creation date of the event
@@ -45,6 +47,8 @@ type EventInstance struct {
 	Description string `json:"description"`
 	// Duration of the event following the ISO 8601 standard
 	Duration string `json:"duration" example:"PT30M"`
+	// Discord ID of the channel the bot will post the event
+	ChannelID string `json:"channel_id,omitempty"`
 	// Start date of the event
 	StartDate time.Time `json:"start_date"`
 	// End date of the event
@@ -65,9 +69,9 @@ type EventModel struct {
 }
 
 func (e EventModel) Insert(event *Event) error {
-	query := `INSERT INTO events (title, description, duration, rrule, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_date, updated_date`
+	query := `INSERT INTO events (title, description, duration, rrule, channel_id, guild_id, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_date, updated_date`
 
-	args := []any{event.Title, event.Description, event.Duration, event.RRule, event.IsActive}
+	args := []any{event.Title, event.Description, event.Duration, event.RRule, event.ChannelID, event.GuildID, event.IsActive}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -81,7 +85,7 @@ func (e EventModel) Insert(event *Event) error {
 }
 
 func (e EventModel) Get(ID uuid.UUID) (Event, error) {
-	query := `SELECT id, title, description, duration, rrule, is_active, created_date, updated_date FROM events WHERE id = $1`
+	query := `SELECT id, title, description, duration, rrule, channel_id, guild_id, is_active, created_date, updated_date FROM events WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -93,6 +97,8 @@ func (e EventModel) Get(ID uuid.UUID) (Event, error) {
 		&event.Description,
 		&event.Duration,
 		&event.RRule,
+		&event.ChannelID,
+		&event.GuildID,
 		&event.IsActive,
 		&event.CreatedDate,
 		&event.UpdatedDate,
@@ -110,7 +116,7 @@ func (e EventModel) Get(ID uuid.UUID) (Event, error) {
 
 func (e EventModel) GetAll() ([]Event, error) {
 	var events []Event
-	query := `SELECT id, title, description, duration, rrule, is_active, created_date, updated_date FROM events`
+	query := `SELECT id, title, description, duration, rrule, channel_id, guild_id, is_active, created_date, updated_date FROM events`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := e.DB.QueryContext(ctx, query)
@@ -133,6 +139,8 @@ func (e EventModel) GetAll() ([]Event, error) {
 			&event.Description,
 			&event.Duration,
 			&event.RRule,
+			&event.ChannelID,
+			&event.GuildID,
 			&event.IsActive,
 			&event.CreatedDate,
 			&event.UpdatedDate,
@@ -150,9 +158,9 @@ func (e EventModel) GetAll() ([]Event, error) {
 }
 
 func (e EventModel) Update(event *Event) error {
-	query := `UPDATE events SET title = $1, description = $2, is_active = $3, duration = $4, rrule = $5, updated_date = NOW() WHERE id = $6 RETURNING updated_date`
+	query := `UPDATE events SET title = $1, description = $2, is_active = $3, duration = $4, rrule = $5, channel_id = $6, guild_id = $7, updated_date = NOW() WHERE id = $8 RETURNING updated_date`
 
-	args := []any{event.Title, event.Description, event.IsActive, event.Duration, event.RRule, event.ID}
+	args := []any{event.Title, event.Description, event.IsActive, event.Duration, event.RRule, event.ChannelID, event.GuildID, event.ID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -187,7 +195,7 @@ func (e EventModel) Delete(ID uuid.UUID) error {
 }
 
 func (e EventModel) GetActiveEvents() ([]Event, error) {
-	query := `SELECT id, title, description, duration, rrule FROM events WHERE is_active = true`
+	query := `SELECT id, title, description, duration, rrule, channel_id, guild_id FROM events WHERE is_active = true`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -214,6 +222,8 @@ func (e EventModel) GetActiveEvents() ([]Event, error) {
 			&event.Description,
 			&event.Duration,
 			&event.RRule,
+			&event.ChannelID,
+			&event.GuildID,
 		)
 		if err != nil {
 			return nil, err
@@ -224,4 +234,19 @@ func (e EventModel) GetActiveEvents() ([]Event, error) {
 		return nil, err
 	}
 	return events, nil
+}
+
+func ParseRRule(s string) (*rrule.RRule, error) {
+	// ensure RRULE: prefix
+	if !strings.HasPrefix(strings.ToUpper(s), "RRULE:") {
+		s = "RRULE:" + s
+	}
+
+	// if no DTSTART, append one at UTC now
+	if !strings.Contains(strings.ToUpper(s), "DTSTART=") {
+		dt := time.Now().UTC().Format("20060102T150405Z")
+		s = s + ";DTSTART=" + dt
+	}
+
+	return rrule.StrToRRule(s)
 }

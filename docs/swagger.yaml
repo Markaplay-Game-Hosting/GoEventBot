@@ -1,11 +1,32 @@
 basePath: /v1/
 definitions:
+  Discord.Channel:
+    description: Discord Channel Model
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  Discord.Role:
+    description: role model
+    properties:
+      id:
+        description: id of the role
+        type: string
+      mentionable:
+        description: if the role is mentionable
+        type: boolean
+      name:
+        description: name of the role
+        type: string
+    type: object
   Event.Create.Request:
     description: Information required to update a new event
     properties:
       channel_id:
         description: Discord ID of the channel the bot will post the event
-        type: integer
+        type: string
       description:
         description: Description/Content of the event
         type: string
@@ -15,7 +36,7 @@ definitions:
         type: string
       guild_id:
         description: Discord Guild ID/server the bot will publish on
-        type: integer
+        type: string
       is_active:
         description: If the event is active of not
         type: boolean
@@ -32,7 +53,7 @@ definitions:
     properties:
       channel_id:
         description: Discord ID of the channel the bot will post the event
-        type: integer
+        type: string
       created_date:
         description: Creation date of the event
         type: string
@@ -45,7 +66,7 @@ definitions:
         type: string
       guild_id:
         description: Discord Guild ID/server the bot will publish on
-        type: integer
+        type: string
       id:
         description: ID of the event
         type: string
@@ -66,6 +87,9 @@ definitions:
   Event.Instance.Get:
     description: Event Instance Response object
     properties:
+      channel_id:
+        description: Discord ID of the channel the bot will post the event
+        type: string
       description:
         description: Description of the event
         type: string
@@ -84,6 +108,59 @@ definitions:
         type: string
       title:
         description: Title of the event
+        type: string
+    type: object
+  Jobs.Get.Response:
+    description: Job model
+    properties:
+      event_id:
+        type: string
+      execution_date:
+        type: string
+      id:
+        type: string
+      status:
+        type: integer
+    type: object
+  Jobs.List.Response:
+    description: response with a list of jobs
+    properties:
+      jobs:
+        description: list of jobs
+        items:
+          $ref: '#/definitions/Jobs.Get.Response'
+        type: array
+    type: object
+  Settings.Add.Request:
+    description: Request body to add a setting
+    properties:
+      description:
+        type: string
+      is_secret:
+        type: boolean
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  Settings.List:
+    description: List of settings
+    properties:
+      settings:
+        items:
+          $ref: '#/definitions/setting'
+        type: array
+    type: object
+  Settings.Update.Request:
+    description: Request body to update a setting
+    properties:
+      description:
+        type: string
+      is_secret:
+        type: boolean
+      name:
+        type: string
+      value:
         type: string
     type: object
   Tag.Create.Request:
@@ -132,6 +209,20 @@ definitions:
         description: Token
         type: string
     type: object
+  User.Get:
+    description: User model
+    properties:
+      activated:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   User.Register.Request:
     description: User Registration Body
     properties:
@@ -155,17 +246,16 @@ definitions:
         description: Authorization token
         type: string
     type: object
-  data.User:
+  setting:
+    description: setting model
     properties:
-      activated:
-        type: boolean
-      created_at:
-        type: string
-      email:
+      description:
         type: string
       id:
         type: string
       name:
+        type: string
+      value:
         type: string
     type: object
 info:
@@ -174,6 +264,51 @@ info:
   title: Go Event Bot API
   version: "1.0"
 paths:
+  /calendar:
+    get:
+      description: List all upcoming events
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Event.Instance.Get'
+            type: array
+      summary: List Upcoming Events
+      tags:
+      - Events
+  /discord/{guild}/channels:
+    get:
+      description: List Channels from a guild
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Discord.Channel'
+            type: array
+      summary: List Channels from a guild
+      tags:
+      - Discord
+  /discord/{guild}/roles:
+    get:
+      description: List Roles from a guild
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Discord.Role'
+            type: array
+      summary: List Roles from a guild
+      tags:
+      - Discord
   /events:
     get:
       description: List all upcoming events
@@ -269,6 +404,104 @@ paths:
       summary: Update Event
       tags:
       - Events
+  /jobs:
+    get:
+      description: List all settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Settings.List'
+      summary: List Settings
+      tags:
+      - Settings
+    post:
+      description: Add new settings
+      parameters:
+      - description: body to add a setting
+        in: body
+        name: setting
+        required: true
+        schema:
+          $ref: '#/definitions/Settings.Add.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/setting'
+      summary: Add Setting
+      tags:
+      - Settings
+  /jobs/{id}:
+    delete:
+      description: Delete an existing setting
+      parameters:
+      - description: id of the setting to delete
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/setting'
+      summary: Delete Setting
+      tags:
+      - Settings
+    get:
+      description: get setting
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/setting'
+      summary: Get Setting
+      tags:
+      - Settings
+    put:
+      description: Update existing setting
+      parameters:
+      - description: id of the setting to update
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: body to update a setting
+        in: body
+        name: setting
+        required: true
+        schema:
+          $ref: '#/definitions/Settings.Update.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/setting'
+      summary: Update Setting
+      tags:
+      - Settings
+  /jobs/{id}/skip:
+    patch:
+      description: Skip a job that has been loaded
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Skip Job
+      tags:
+      - Jobs
   /tags:
     get:
       description: List all tags
@@ -384,7 +617,7 @@ paths:
         "200":
           description: user information
           schema:
-            $ref: '#/definitions/data.User'
+            $ref: '#/definitions/User.Get'
       summary: Register a new user account
       tags:
       - Users
@@ -404,7 +637,7 @@ paths:
         "200":
           description: user information
           schema:
-            $ref: '#/definitions/data.User'
+            $ref: '#/definitions/User.Get'
       summary: Activate a new user account
       tags:
       - Users
@@ -424,7 +657,7 @@ paths:
         "200":
           description: tag information
           schema:
-            $ref: '#/definitions/data.User'
+            $ref: '#/definitions/User.Get'
       summary: Update Password
       tags:
       - Users

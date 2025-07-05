@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
@@ -63,4 +64,43 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) validateAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Add("Vary", "Authorization")
+
+	authorizationHeader := r.Header.Get("Authorization")
+
+	if authorizationHeader == "" {
+		r = app.contextSetUser(r, data.AnonymousUser, nil)
+		return false
+	}
+
+	headerParts := strings.Split(authorizationHeader, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		app.invalidAuthenticationTokenResponse(w, r)
+		return false
+	}
+
+	token := headerParts[1]
+
+	v := validator.New()
+
+	if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+		app.invalidAuthenticationTokenResponse(w, r)
+		return false
+	}
+
+	user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.invalidAuthenticationTokenResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return false
+	}
+	r = app.contextSetUser(r, user, nil)
+	return true
 }

@@ -1,18 +1,19 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"expvar"
 	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/data"
-	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 
 	"github.com/felixge/httpsnoop"
 	"github.com/tomasen/realip"
@@ -23,6 +24,9 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
+				buf := make([]byte, 1<<16)
+				runtime.Stack(buf, true)
+				app.logger.Error("panic recovered", "error", err, "stack", string(buf))
 				w.Header().Set("Connection", "close")
 				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
 			}
@@ -89,94 +93,71 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization")
+		w.Header().Add("Vary", "Cookie")
 
-		authorizationHeader := r.Header.Get("Authorization")
-
-		if authorizationHeader == "" {
-			r = app.contextSetUser(r, data.AnonymousUser)
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		headerParts := strings.Split(authorizationHeader, " ")
-		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-			app.invalidAuthenticationTokenResponse(w, r)
-			return
-		}
-
-		token := headerParts[1]
-
-		v := validator.New()
-
-		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
-			app.invalidAuthenticationTokenResponse(w, r)
-			return
-		}
-
-		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
-		if err != nil {
-			switch {
-			case errors.Is(err, data.ErrRecordNotFound):
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			app.logger.Info("bearer auth")
+			parts := strings.SplitN(auth, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
 				app.invalidAuthenticationTokenResponse(w, r)
-			default:
-				app.serverErrorResponse(w, r, err)
+				return
 			}
-			return
+			user, err := app.models.Users.GetForToken(data.ScopeAuthentication, parts[1])
+			if err != nil {
+				if errors.Is(err, data.ErrRecordNotFound) {
+					app.invalidAuthenticationTokenResponse(w, r)
+				} else {
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			r = app.contextSetUser(r, user, nil)
+		} else {
+			app.logger.Info("cookie auth")
+			du, err := app.getCookieHandler(r)
+			if err == nil {
+				app.logger.Info("cookie authenticated", "user", du)
+				r = app.contextSetUser(r, nil, &du)
+			} else if errors.Is(err, http.ErrNoCookie) {
+				app.logger.Info("anonymous user", "user", du)
+				r = app.contextSetUser(r, data.AnonymousUser, nil)
+			} else {
+				app.logger.Info("invalid cookie", "error", err)
+				app.InvalidCookieResponse(w, r, err)
+				return
+			}
 		}
-
-		r = app.contextSetUser(r, user)
 
 		next.ServeHTTP(w, r)
 	})
 }
 
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := app.contextGetUser(r)
-
-		if user.IsAnonymous() {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, du := app.contextGetUser(r)
+		if (user == nil && du == nil) || user.IsAnonymous() {
+			app.logger.Warn("user not authenticated", "user", user, "du", du)
 			app.authenticationRequiredResponse(w, r)
 			return
 		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
-	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := app.contextGetUser(r)
-
-		if !user.Activated {
-			app.inactiveAccountResponse(w, r)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-
-	return app.requireAuthenticatedUser(fn)
+		next(w, r)
+	}
 }
 
 func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		user := app.contextGetUser(r)
-
-		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := app.contextGetUser(r)
+		perms, err := app.models.Permissions.GetAllForUser(user.ID)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return
 		}
-
-		if !permissions.Include(code) {
+		if !perms.Include(code) {
 			app.notPermittedResponse(w, r)
 			return
 		}
-
-		next.ServeHTTP(w, r)
+		next(w, r)
 	}
-
-	return app.requireActivatedUser(fn)
 }
 
 func (app *application) enableCORS(next http.Handler) http.Handler {
@@ -194,8 +175,9 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 
 					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 
-						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE")
 						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+						w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 						w.WriteHeader(http.StatusOK)
 						return
@@ -210,12 +192,12 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 	})
 }
 
-func (app *application) setTracingId(next http.Handler) http.Handler {
+func (app *application) setTracingID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tracingID := uuid.New().String()
-		w.Header().Set("X-Trace-ID", tracingID)
-		next.ServeHTTP(w, r)
-
+		traceID := uuid.New().String()
+		ctx := context.WithValue(r.Context(), "X-Trace-ID", traceID)
+		w.Header().Set("X-Trace-ID", traceID)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

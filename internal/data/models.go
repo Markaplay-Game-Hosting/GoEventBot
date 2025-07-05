@@ -18,6 +18,7 @@ type Models struct {
 	Jobs        JobModel
 	OAuth       OAuthModel
 	Tags        TagModel
+	Settings    SettingModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -29,5 +30,6 @@ func NewModels(db *sql.DB) Models {
 		Jobs:        JobModel{DB: db},
 		OAuth:       OAuthModel{},
 		Tags:        TagModel{DB: db},
+		Settings:    SettingModel{DB: db},
 	}
 }

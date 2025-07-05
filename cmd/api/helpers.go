@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"github.com/Markaplay-Game-Hosting/GoEventBot/internal/validator"
 	"github.com/google/uuid"
-	"github.com/teambition/rrule-go"
+	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) readIDParam(r *http.Request) (uuid.UUID, error) {
@@ -101,29 +98,9 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	return nil
 }
 
-func ParseRRule(s string) (*rrule.RRule, error) {
-	// ensure RRULE: prefix
-	if !strings.HasPrefix(strings.ToUpper(s), "RRULE:") {
-		s = "RRULE:" + s
-	}
-
-	// if no DTSTART, append one at UTC now
-	if !strings.Contains(strings.ToUpper(s), "DTSTART=") {
-		dt := time.Now().UTC().Format("20060102T150405Z")
-		s = s + ";DTSTART=" + dt
-	}
-
-	return rrule.StrToRRule(s)
-}
-
-func (app *application) readString(qs url.Values, key string, defaultValue string) string {
-	s := qs.Get(key)
-
-	if s == "" {
-		return defaultValue
-	}
-
-	return s
+func (app *application) readString(r *http.Request, key string, defaultValue string) string {
+	params := httprouter.ParamsFromContext(r.Context())
+	return params.ByName(key)
 }
 
 func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
