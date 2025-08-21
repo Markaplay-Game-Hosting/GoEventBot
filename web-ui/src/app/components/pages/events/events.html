@@ -1,0 +1,34 @@
+<div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Channel</th>
+                <th>Guild</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @for (partyEvent of data; track partyEvent.event_id){
+            <tr>
+                <td>{{partyEvent.title}}</td>
+                <td>
+                    {{partyEvent.description}}
+                </td>
+                <td>{{partyEvent.channel_id}}</td>
+                <td>{{partyEvent.guild_id}}</td>
+                <td>
+                    <fa-icon
+                        [icon]="partyEvent.is_active === true ? faCircleCheck : faCircleXmark"
+                    ></fa-icon>
+                </td>
+                <td>
+                    <button class="btn btn-xs"><fa-icon [icon]="faPencil"/></button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

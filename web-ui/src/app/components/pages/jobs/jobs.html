@@ -1,0 +1,30 @@
+<div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>EventId</th>
+                <th>Execution Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        @for (loadedJob of data; track loadedJob.id){
+            <tr>
+                <td>{{loadedJob.id}}</td>
+                <td>
+                    {{loadedJob.event_id}}
+                </td>
+                <td>{{loadedJob.execution_date}}</td>
+                <td>
+                    @if (isIconStatus(loadedJob.status)) {
+                        <fa-icon [icon]="getIconName(loadedJob.status)" class="fa-table-icon"/>
+                    } @else {
+                        <span class="loading loading-spinner loading-md"></span>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

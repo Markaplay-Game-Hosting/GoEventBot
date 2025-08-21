@@ -1,0 +1,25 @@
+<div class="overflow-x-auto">
+  <table class="table">
+    <!-- head -->
+    <thead>
+      <tr>
+        <th></th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        @for (tag of data; track tag.id) {
+          <tr>
+            <th>{{tag.id}}</th>
+            <td>{{tag.name}}</td>
+            <td>{{tag.description}}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3" class="text-center">No tags available</td>
+          </tr>
+        }
+    </tbody>
+  </table>
+</div>
