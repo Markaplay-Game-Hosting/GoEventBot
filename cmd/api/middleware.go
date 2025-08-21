@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"expvar"
 	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/oauth2"
+	"io"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -102,16 +105,36 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 				app.invalidAuthenticationTokenResponse(w, r)
 				return
 			}
-			user, err := app.models.Users.GetForToken(data.ScopeAuthentication, parts[1])
-			if err != nil {
-				if errors.Is(err, data.ErrRecordNotFound) {
-					app.invalidAuthenticationTokenResponse(w, r)
-				} else {
-					app.serverErrorResponse(w, r, err)
-				}
+			ctx := r.Context()
+			token := oauth2.Token{AccessToken: parts[1]}
+			client := app.oauth2Config.Client(ctx, &token) //app.models.Users.GetForToken(data.ScopeAuthentication, parts[1])
+			if client == nil {
+				app.invalidAuthenticationTokenResponse(w, r)
 				return
 			}
-			r = app.contextSetUser(r, user, nil)
+
+			resp, err := client.Get("https://discord.com/api/users/@me")
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+			defer func(Body io.ReadCloser) {
+				err = Body.Close()
+
+			}(resp.Body)
+
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+
+			var userInfo UserInfo
+			if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+
+			r = app.contextSetUser(r, nil, &userInfo)
 		} else {
 			app.logger.Info("cookie auth")
 			du, err := app.getCookieHandler(r)

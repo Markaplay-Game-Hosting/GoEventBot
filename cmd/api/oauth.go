@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 )
 
@@ -42,7 +43,15 @@ func (app *application) callbackHandler(w http.ResponseWriter, r *http.Request) 
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+
+	}(resp.Body)
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
 	var userInfo UserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
@@ -54,5 +63,12 @@ func (app *application) callbackHandler(w http.ResponseWriter, r *http.Request) 
 
 	app.setCookieHandler(userInfo, w, r)
 
-	http.Redirect(w, r, "/home", http.StatusFound)
+	if origin := r.Header.Get("Origin"); origin != "" {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+	err = app.writeJSON(w, http.StatusFound, envelope{"token": token}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }

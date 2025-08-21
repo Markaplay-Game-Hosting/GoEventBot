@@ -24,7 +24,7 @@ func (app *application) ServeFrontendProxy(w http.ResponseWriter, r *http.Reques
 
 func (app *application) getViteProxy() *httputil.ReverseProxy {
 	// Define your Vite dev server URL (typically runs on port 5173)
-	viteURL, err := url.Parse("http://localhost:5173")
+	viteURL, err := url.Parse("http://localhost:4200")
 	if err != nil {
 		app.logger.Error("Failed to parse Vite URL:", "error", err)
 	}
@@ -44,7 +44,7 @@ func (app *application) getViteProxy() *httputil.ReverseProxy {
 // IsViteServerRunning
 // Check if Vite dev server is running
 func IsViteServerRunning() bool {
-	conn, err := net.Dial("tcp", "localhost:5173")
+	conn, err := net.Dial("tcp", "localhost:4200")
 	if err != nil {
 		return false
 	}
